@@ -1,0 +1,533 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/**<a name="line.1"></a>
+<span class="sourceLineNo">002</span> * Licensed to the Apache Software Foundation (ASF) under one<a name="line.2"></a>
+<span class="sourceLineNo">003</span> * or more contributor license agreements.  See the NOTICE file<a name="line.3"></a>
+<span class="sourceLineNo">004</span> * distributed with this work for additional information<a name="line.4"></a>
+<span class="sourceLineNo">005</span> * regarding copyright ownership.  The ASF licenses this file<a name="line.5"></a>
+<span class="sourceLineNo">006</span> * to you under the Apache License, Version 2.0 (the<a name="line.6"></a>
+<span class="sourceLineNo">007</span> * "License"); you may not use this file except in compliance<a name="line.7"></a>
+<span class="sourceLineNo">008</span> * with the License.  You may obtain a copy of the License at<a name="line.8"></a>
+<span class="sourceLineNo">009</span> *<a name="line.9"></a>
+<span class="sourceLineNo">010</span> *     http://www.apache.org/licenses/LICENSE-2.0<a name="line.10"></a>
+<span class="sourceLineNo">011</span> *<a name="line.11"></a>
+<span class="sourceLineNo">012</span> * Unless required by applicable law or agreed to in writing, software<a name="line.12"></a>
+<span class="sourceLineNo">013</span> * distributed under the License is distributed on an "AS IS" BASIS,<a name="line.13"></a>
+<span class="sourceLineNo">014</span> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<a name="line.14"></a>
+<span class="sourceLineNo">015</span> * See the License for the specific language governing permissions and<a name="line.15"></a>
+<span class="sourceLineNo">016</span> * limitations under the License.<a name="line.16"></a>
+<span class="sourceLineNo">017</span> */<a name="line.17"></a>
+<span class="sourceLineNo">018</span>package org.apache.hadoop.hdfs;<a name="line.18"></a>
+<span class="sourceLineNo">019</span><a name="line.19"></a>
+<span class="sourceLineNo">020</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_MAX_ATTEMPTS_DEFAULT;<a name="line.20"></a>
+<span class="sourceLineNo">021</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_MAX_ATTEMPTS_KEY;<a name="line.21"></a>
+<span class="sourceLineNo">022</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_PROXY_PROVIDER_KEY_PREFIX;<a name="line.22"></a>
+<span class="sourceLineNo">023</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_SLEEPTIME_BASE_DEFAULT;<a name="line.23"></a>
+<span class="sourceLineNo">024</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_SLEEPTIME_BASE_KEY;<a name="line.24"></a>
+<span class="sourceLineNo">025</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_SLEEPTIME_MAX_DEFAULT;<a name="line.25"></a>
+<span class="sourceLineNo">026</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_FAILOVER_SLEEPTIME_MAX_KEY;<a name="line.26"></a>
+<span class="sourceLineNo">027</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_RETRY_MAX_ATTEMPTS_KEY;<a name="line.27"></a>
+<span class="sourceLineNo">028</span>import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT;<a name="line.28"></a>
+<span class="sourceLineNo">029</span><a name="line.29"></a>
+<span class="sourceLineNo">030</span>import java.io.IOException;<a name="line.30"></a>
+<span class="sourceLineNo">031</span>import java.lang.reflect.Constructor;<a name="line.31"></a>
+<span class="sourceLineNo">032</span>import java.lang.reflect.InvocationHandler;<a name="line.32"></a>
+<span class="sourceLineNo">033</span>import java.lang.reflect.Proxy;<a name="line.33"></a>
+<span class="sourceLineNo">034</span>import java.net.InetSocketAddress;<a name="line.34"></a>
+<span class="sourceLineNo">035</span>import java.net.URI;<a name="line.35"></a>
+<span class="sourceLineNo">036</span>import java.util.HashMap;<a name="line.36"></a>
+<span class="sourceLineNo">037</span>import java.util.Map;<a name="line.37"></a>
+<span class="sourceLineNo">038</span>import java.util.concurrent.TimeUnit;<a name="line.38"></a>
+<span class="sourceLineNo">039</span><a name="line.39"></a>
+<span class="sourceLineNo">040</span>import org.apache.commons.logging.Log;<a name="line.40"></a>
+<span class="sourceLineNo">041</span>import org.apache.commons.logging.LogFactory;<a name="line.41"></a>
+<span class="sourceLineNo">042</span>import org.apache.hadoop.conf.Configuration;<a name="line.42"></a>
+<span class="sourceLineNo">043</span>import org.apache.hadoop.hdfs.DFSClient.Conf;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>import org.apache.hadoop.hdfs.protocol.ClientProtocol;<a name="line.45"></a>
+<span class="sourceLineNo">046</span>import org.apache.hadoop.hdfs.protocol.HdfsConstants;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>import org.apache.hadoop.hdfs.protocolPB.JournalProtocolPB;<a name="line.49"></a>
+<span class="sourceLineNo">050</span>import org.apache.hadoop.hdfs.protocolPB.JournalProtocolTranslatorPB;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>import org.apache.hadoop.hdfs.protocolPB.NamenodeProtocolPB;<a name="line.51"></a>
+<span class="sourceLineNo">052</span>import org.apache.hadoop.hdfs.protocolPB.NamenodeProtocolTranslatorPB;<a name="line.52"></a>
+<span class="sourceLineNo">053</span>import org.apache.hadoop.hdfs.server.namenode.NameNode;<a name="line.53"></a>
+<span class="sourceLineNo">054</span>import org.apache.hadoop.hdfs.server.namenode.SafeModeException;<a name="line.54"></a>
+<span class="sourceLineNo">055</span>import org.apache.hadoop.hdfs.server.protocol.JournalProtocol;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>import org.apache.hadoop.hdfs.server.protocol.NamenodeProtocol;<a name="line.56"></a>
+<span class="sourceLineNo">057</span>import org.apache.hadoop.hdfs.server.protocol.NamenodeProtocols;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>import org.apache.hadoop.io.Text;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>import org.apache.hadoop.io.retry.DefaultFailoverProxyProvider;<a name="line.59"></a>
+<span class="sourceLineNo">060</span>import org.apache.hadoop.io.retry.FailoverProxyProvider;<a name="line.60"></a>
+<span class="sourceLineNo">061</span>import org.apache.hadoop.io.retry.LossyRetryInvocationHandler;<a name="line.61"></a>
+<span class="sourceLineNo">062</span>import org.apache.hadoop.io.retry.RetryPolicies;<a name="line.62"></a>
+<span class="sourceLineNo">063</span>import org.apache.hadoop.io.retry.RetryPolicy;<a name="line.63"></a>
+<span class="sourceLineNo">064</span>import org.apache.hadoop.io.retry.RetryProxy;<a name="line.64"></a>
+<span class="sourceLineNo">065</span>import org.apache.hadoop.io.retry.RetryUtils;<a name="line.65"></a>
+<span class="sourceLineNo">066</span>import org.apache.hadoop.ipc.ProtobufRpcEngine;<a name="line.66"></a>
+<span class="sourceLineNo">067</span>import org.apache.hadoop.ipc.RPC;<a name="line.67"></a>
+<span class="sourceLineNo">068</span>import org.apache.hadoop.ipc.RemoteException;<a name="line.68"></a>
+<span class="sourceLineNo">069</span>import org.apache.hadoop.net.NetUtils;<a name="line.69"></a>
+<span class="sourceLineNo">070</span>import org.apache.hadoop.security.RefreshUserMappingsProtocol;<a name="line.70"></a>
+<span class="sourceLineNo">071</span>import org.apache.hadoop.security.SecurityUtil;<a name="line.71"></a>
+<span class="sourceLineNo">072</span>import org.apache.hadoop.security.UserGroupInformation;<a name="line.72"></a>
+<span class="sourceLineNo">073</span>import org.apache.hadoop.security.authorize.RefreshAuthorizationPolicyProtocol;<a name="line.73"></a>
+<span class="sourceLineNo">074</span>import org.apache.hadoop.security.protocolPB.RefreshAuthorizationPolicyProtocolClientSideTranslatorPB;<a name="line.74"></a>
+<span class="sourceLineNo">075</span>import org.apache.hadoop.security.protocolPB.RefreshAuthorizationPolicyProtocolPB;<a name="line.75"></a>
+<span class="sourceLineNo">076</span>import org.apache.hadoop.security.protocolPB.RefreshUserMappingsProtocolClientSideTranslatorPB;<a name="line.76"></a>
+<span class="sourceLineNo">077</span>import org.apache.hadoop.security.protocolPB.RefreshUserMappingsProtocolPB;<a name="line.77"></a>
+<span class="sourceLineNo">078</span>import org.apache.hadoop.ipc.RefreshCallQueueProtocol;<a name="line.78"></a>
+<span class="sourceLineNo">079</span>import org.apache.hadoop.ipc.protocolPB.RefreshCallQueueProtocolPB;<a name="line.79"></a>
+<span class="sourceLineNo">080</span>import org.apache.hadoop.ipc.protocolPB.RefreshCallQueueProtocolClientSideTranslatorPB;<a name="line.80"></a>
+<span class="sourceLineNo">081</span>import org.apache.hadoop.tools.GetUserMappingsProtocol;<a name="line.81"></a>
+<span class="sourceLineNo">082</span>import org.apache.hadoop.tools.protocolPB.GetUserMappingsProtocolClientSideTranslatorPB;<a name="line.82"></a>
+<span class="sourceLineNo">083</span>import org.apache.hadoop.tools.protocolPB.GetUserMappingsProtocolPB;<a name="line.83"></a>
+<span class="sourceLineNo">084</span><a name="line.84"></a>
+<span class="sourceLineNo">085</span>import com.google.common.annotations.VisibleForTesting;<a name="line.85"></a>
+<span class="sourceLineNo">086</span>import com.google.common.base.Preconditions;<a name="line.86"></a>
+<span class="sourceLineNo">087</span><a name="line.87"></a>
+<span class="sourceLineNo">088</span>/**<a name="line.88"></a>
+<span class="sourceLineNo">089</span> * Create proxy objects to communicate with a remote NN. All remote access to an<a name="line.89"></a>
+<span class="sourceLineNo">090</span> * NN should be funneled through this class. Most of the time you'll want to use<a name="line.90"></a>
+<span class="sourceLineNo">091</span> * {@link NameNodeProxies#createProxy(Configuration, URI, Class)}, which will<a name="line.91"></a>
+<span class="sourceLineNo">092</span> * create either an HA- or non-HA-enabled client proxy as appropriate.<a name="line.92"></a>
+<span class="sourceLineNo">093</span> */<a name="line.93"></a>
+<span class="sourceLineNo">094</span>public class NameNodeProxies {<a name="line.94"></a>
+<span class="sourceLineNo">095</span>  <a name="line.95"></a>
+<span class="sourceLineNo">096</span>  private static final Log LOG = LogFactory.getLog(NameNodeProxies.class);<a name="line.96"></a>
+<span class="sourceLineNo">097</span><a name="line.97"></a>
+<span class="sourceLineNo">098</span>  /**<a name="line.98"></a>
+<span class="sourceLineNo">099</span>   * Wrapper for a client proxy as well as its associated service ID.<a name="line.99"></a>
+<span class="sourceLineNo">100</span>   * This is simply used as a tuple-like return type for<a name="line.100"></a>
+<span class="sourceLineNo">101</span>   * {@link NameNodeProxies#createProxy} and<a name="line.101"></a>
+<span class="sourceLineNo">102</span>   * {@link NameNodeProxies#createNonHAProxy}.<a name="line.102"></a>
+<span class="sourceLineNo">103</span>   */<a name="line.103"></a>
+<span class="sourceLineNo">104</span>  public static class ProxyAndInfo&lt;PROXYTYPE&gt; {<a name="line.104"></a>
+<span class="sourceLineNo">105</span>    private final PROXYTYPE proxy;<a name="line.105"></a>
+<span class="sourceLineNo">106</span>    private final Text dtService;<a name="line.106"></a>
+<span class="sourceLineNo">107</span>    <a name="line.107"></a>
+<span class="sourceLineNo">108</span>    public ProxyAndInfo(PROXYTYPE proxy, Text dtService) {<a name="line.108"></a>
+<span class="sourceLineNo">109</span>      this.proxy = proxy;<a name="line.109"></a>
+<span class="sourceLineNo">110</span>      this.dtService = dtService;<a name="line.110"></a>
+<span class="sourceLineNo">111</span>    }<a name="line.111"></a>
+<span class="sourceLineNo">112</span>    <a name="line.112"></a>
+<span class="sourceLineNo">113</span>    public PROXYTYPE getProxy() {<a name="line.113"></a>
+<span class="sourceLineNo">114</span>      return proxy;<a name="line.114"></a>
+<span class="sourceLineNo">115</span>    }<a name="line.115"></a>
+<span class="sourceLineNo">116</span>    <a name="line.116"></a>
+<span class="sourceLineNo">117</span>    public Text getDelegationTokenService() {<a name="line.117"></a>
+<span class="sourceLineNo">118</span>      return dtService;<a name="line.118"></a>
+<span class="sourceLineNo">119</span>    }<a name="line.119"></a>
+<span class="sourceLineNo">120</span>  }<a name="line.120"></a>
+<span class="sourceLineNo">121</span><a name="line.121"></a>
+<span class="sourceLineNo">122</span>  /**<a name="line.122"></a>
+<span class="sourceLineNo">123</span>   * Creates the namenode proxy with the passed protocol. This will handle<a name="line.123"></a>
+<span class="sourceLineNo">124</span>   * creation of either HA- or non-HA-enabled proxy objects, depending upon<a name="line.124"></a>
+<span class="sourceLineNo">125</span>   * if the provided URI is a configured logical URI.<a name="line.125"></a>
+<span class="sourceLineNo">126</span>   * <a name="line.126"></a>
+<span class="sourceLineNo">127</span>   * @param conf the configuration containing the required IPC<a name="line.127"></a>
+<span class="sourceLineNo">128</span>   *        properties, client failover configurations, etc.<a name="line.128"></a>
+<span class="sourceLineNo">129</span>   * @param nameNodeUri the URI pointing either to a specific NameNode<a name="line.129"></a>
+<span class="sourceLineNo">130</span>   *        or to a logical nameservice.<a name="line.130"></a>
+<span class="sourceLineNo">131</span>   * @param xface the IPC interface which should be created<a name="line.131"></a>
+<span class="sourceLineNo">132</span>   * @return an object containing both the proxy and the associated<a name="line.132"></a>
+<span class="sourceLineNo">133</span>   *         delegation token service it corresponds to<a name="line.133"></a>
+<span class="sourceLineNo">134</span>   * @throws IOException if there is an error creating the proxy<a name="line.134"></a>
+<span class="sourceLineNo">135</span>   **/<a name="line.135"></a>
+<span class="sourceLineNo">136</span>  @SuppressWarnings("unchecked")<a name="line.136"></a>
+<span class="sourceLineNo">137</span>  public static &lt;T&gt; ProxyAndInfo&lt;T&gt; createProxy(Configuration conf,<a name="line.137"></a>
+<span class="sourceLineNo">138</span>      URI nameNodeUri, Class&lt;T&gt; xface) throws IOException {<a name="line.138"></a>
+<span class="sourceLineNo">139</span>    Class&lt;FailoverProxyProvider&lt;T&gt;&gt; failoverProxyProviderClass =<a name="line.139"></a>
+<span class="sourceLineNo">140</span>        getFailoverProxyProviderClass(conf, nameNodeUri, xface);<a name="line.140"></a>
+<span class="sourceLineNo">141</span>  <a name="line.141"></a>
+<span class="sourceLineNo">142</span>    if (failoverProxyProviderClass == null) {<a name="line.142"></a>
+<span class="sourceLineNo">143</span>      // Non-HA case<a name="line.143"></a>
+<span class="sourceLineNo">144</span>      return createNonHAProxy(conf, NameNode.getAddress(nameNodeUri), xface,<a name="line.144"></a>
+<span class="sourceLineNo">145</span>          UserGroupInformation.getCurrentUser(), true);<a name="line.145"></a>
+<span class="sourceLineNo">146</span>    } else {<a name="line.146"></a>
+<span class="sourceLineNo">147</span>      // HA case<a name="line.147"></a>
+<span class="sourceLineNo">148</span>      FailoverProxyProvider&lt;T&gt; failoverProxyProvider = NameNodeProxies<a name="line.148"></a>
+<span class="sourceLineNo">149</span>          .createFailoverProxyProvider(conf, failoverProxyProviderClass, xface,<a name="line.149"></a>
+<span class="sourceLineNo">150</span>              nameNodeUri);<a name="line.150"></a>
+<span class="sourceLineNo">151</span>      Conf config = new Conf(conf);<a name="line.151"></a>
+<span class="sourceLineNo">152</span>      T proxy = (T) RetryProxy.create(xface, failoverProxyProvider,<a name="line.152"></a>
+<span class="sourceLineNo">153</span>          RetryPolicies.failoverOnNetworkException(<a name="line.153"></a>
+<span class="sourceLineNo">154</span>              RetryPolicies.TRY_ONCE_THEN_FAIL, config.maxFailoverAttempts,<a name="line.154"></a>
+<span class="sourceLineNo">155</span>              config.maxRetryAttempts, config.failoverSleepBaseMillis,<a name="line.155"></a>
+<span class="sourceLineNo">156</span>              config.failoverSleepMaxMillis));<a name="line.156"></a>
+<span class="sourceLineNo">157</span>      <a name="line.157"></a>
+<span class="sourceLineNo">158</span>      Text dtService = HAUtil.buildTokenServiceForLogicalUri(nameNodeUri);<a name="line.158"></a>
+<span class="sourceLineNo">159</span>      return new ProxyAndInfo&lt;T&gt;(proxy, dtService);<a name="line.159"></a>
+<span class="sourceLineNo">160</span>    }<a name="line.160"></a>
+<span class="sourceLineNo">161</span>  }<a name="line.161"></a>
+<span class="sourceLineNo">162</span>  <a name="line.162"></a>
+<span class="sourceLineNo">163</span>  /**<a name="line.163"></a>
+<span class="sourceLineNo">164</span>   * Generate a dummy namenode proxy instance that utilizes our hacked<a name="line.164"></a>
+<span class="sourceLineNo">165</span>   * {@link LossyRetryInvocationHandler}. Proxy instance generated using this<a name="line.165"></a>
+<span class="sourceLineNo">166</span>   * method will proactively drop RPC responses. Currently this method only<a name="line.166"></a>
+<span class="sourceLineNo">167</span>   * support HA setup. null will be returned if the given configuration is not <a name="line.167"></a>
+<span class="sourceLineNo">168</span>   * for HA.<a name="line.168"></a>
+<span class="sourceLineNo">169</span>   * <a name="line.169"></a>
+<span class="sourceLineNo">170</span>   * @param config the configuration containing the required IPC<a name="line.170"></a>
+<span class="sourceLineNo">171</span>   *        properties, client failover configurations, etc.<a name="line.171"></a>
+<span class="sourceLineNo">172</span>   * @param nameNodeUri the URI pointing either to a specific NameNode<a name="line.172"></a>
+<span class="sourceLineNo">173</span>   *        or to a logical nameservice.<a name="line.173"></a>
+<span class="sourceLineNo">174</span>   * @param xface the IPC interface which should be created<a name="line.174"></a>
+<span class="sourceLineNo">175</span>   * @param numResponseToDrop The number of responses to drop for each RPC call<a name="line.175"></a>
+<span class="sourceLineNo">176</span>   * @return an object containing both the proxy and the associated<a name="line.176"></a>
+<span class="sourceLineNo">177</span>   *         delegation token service it corresponds to. Will return null of the<a name="line.177"></a>
+<span class="sourceLineNo">178</span>   *         given configuration does not support HA.<a name="line.178"></a>
+<span class="sourceLineNo">179</span>   * @throws IOException if there is an error creating the proxy<a name="line.179"></a>
+<span class="sourceLineNo">180</span>   */<a name="line.180"></a>
+<span class="sourceLineNo">181</span>  @SuppressWarnings("unchecked")<a name="line.181"></a>
+<span class="sourceLineNo">182</span>  public static &lt;T&gt; ProxyAndInfo&lt;T&gt; createProxyWithLossyRetryHandler(<a name="line.182"></a>
+<span class="sourceLineNo">183</span>      Configuration config, URI nameNodeUri, Class&lt;T&gt; xface,<a name="line.183"></a>
+<span class="sourceLineNo">184</span>      int numResponseToDrop) throws IOException {<a name="line.184"></a>
+<span class="sourceLineNo">185</span>    Preconditions.checkArgument(numResponseToDrop &gt; 0);<a name="line.185"></a>
+<span class="sourceLineNo">186</span>    Class&lt;FailoverProxyProvider&lt;T&gt;&gt; failoverProxyProviderClass = <a name="line.186"></a>
+<span class="sourceLineNo">187</span>        getFailoverProxyProviderClass(config, nameNodeUri, xface);<a name="line.187"></a>
+<span class="sourceLineNo">188</span>    if (failoverProxyProviderClass != null) { // HA case<a name="line.188"></a>
+<span class="sourceLineNo">189</span>      FailoverProxyProvider&lt;T&gt; failoverProxyProvider = <a name="line.189"></a>
+<span class="sourceLineNo">190</span>          createFailoverProxyProvider(config, failoverProxyProviderClass, <a name="line.190"></a>
+<span class="sourceLineNo">191</span>              xface, nameNodeUri);<a name="line.191"></a>
+<span class="sourceLineNo">192</span>      int delay = config.getInt(<a name="line.192"></a>
+<span class="sourceLineNo">193</span>          DFS_CLIENT_FAILOVER_SLEEPTIME_BASE_KEY,<a name="line.193"></a>
+<span class="sourceLineNo">194</span>          DFS_CLIENT_FAILOVER_SLEEPTIME_BASE_DEFAULT);<a name="line.194"></a>
+<span class="sourceLineNo">195</span>      int maxCap = config.getInt(<a name="line.195"></a>
+<span class="sourceLineNo">196</span>          DFS_CLIENT_FAILOVER_SLEEPTIME_MAX_KEY,<a name="line.196"></a>
+<span class="sourceLineNo">197</span>          DFS_CLIENT_FAILOVER_SLEEPTIME_MAX_DEFAULT);<a name="line.197"></a>
+<span class="sourceLineNo">198</span>      int maxFailoverAttempts = config.getInt(<a name="line.198"></a>
+<span class="sourceLineNo">199</span>          DFS_CLIENT_FAILOVER_MAX_ATTEMPTS_KEY,<a name="line.199"></a>
+<span class="sourceLineNo">200</span>          DFS_CLIENT_FAILOVER_MAX_ATTEMPTS_DEFAULT);<a name="line.200"></a>
+<span class="sourceLineNo">201</span>      int maxRetryAttempts = config.getInt(<a name="line.201"></a>
+<span class="sourceLineNo">202</span>          DFS_CLIENT_RETRY_MAX_ATTEMPTS_KEY,<a name="line.202"></a>
+<span class="sourceLineNo">203</span>          DFS_CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT);<a name="line.203"></a>
+<span class="sourceLineNo">204</span>      InvocationHandler dummyHandler = new LossyRetryInvocationHandler&lt;T&gt;(<a name="line.204"></a>
+<span class="sourceLineNo">205</span>              numResponseToDrop, failoverProxyProvider,<a name="line.205"></a>
+<span class="sourceLineNo">206</span>              RetryPolicies.failoverOnNetworkException(<a name="line.206"></a>
+<span class="sourceLineNo">207</span>                  RetryPolicies.TRY_ONCE_THEN_FAIL, maxFailoverAttempts, <a name="line.207"></a>
+<span class="sourceLineNo">208</span>                  Math.max(numResponseToDrop + 1, maxRetryAttempts), delay, <a name="line.208"></a>
+<span class="sourceLineNo">209</span>                  maxCap));<a name="line.209"></a>
+<span class="sourceLineNo">210</span>      <a name="line.210"></a>
+<span class="sourceLineNo">211</span>      T proxy = (T) Proxy.newProxyInstance(<a name="line.211"></a>
+<span class="sourceLineNo">212</span>          failoverProxyProvider.getInterface().getClassLoader(),<a name="line.212"></a>
+<span class="sourceLineNo">213</span>          new Class[] { xface }, dummyHandler);<a name="line.213"></a>
+<span class="sourceLineNo">214</span>      Text dtService = HAUtil.buildTokenServiceForLogicalUri(nameNodeUri);<a name="line.214"></a>
+<span class="sourceLineNo">215</span>      return new ProxyAndInfo&lt;T&gt;(proxy, dtService);<a name="line.215"></a>
+<span class="sourceLineNo">216</span>    } else {<a name="line.216"></a>
+<span class="sourceLineNo">217</span>      LOG.warn("Currently creating proxy using " +<a name="line.217"></a>
+<span class="sourceLineNo">218</span>                "LossyRetryInvocationHandler requires NN HA setup");<a name="line.218"></a>
+<span class="sourceLineNo">219</span>      return null;<a name="line.219"></a>
+<span class="sourceLineNo">220</span>    }<a name="line.220"></a>
+<span class="sourceLineNo">221</span>  }<a name="line.221"></a>
+<span class="sourceLineNo">222</span><a name="line.222"></a>
+<span class="sourceLineNo">223</span>  /**<a name="line.223"></a>
+<span class="sourceLineNo">224</span>   * Creates an explicitly non-HA-enabled proxy object. Most of the time you<a name="line.224"></a>
+<span class="sourceLineNo">225</span>   * don't want to use this, and should instead use {@link NameNodeProxies#createProxy}.<a name="line.225"></a>
+<span class="sourceLineNo">226</span>   * <a name="line.226"></a>
+<span class="sourceLineNo">227</span>   * @param conf the configuration object<a name="line.227"></a>
+<span class="sourceLineNo">228</span>   * @param nnAddr address of the remote NN to connect to<a name="line.228"></a>
+<span class="sourceLineNo">229</span>   * @param xface the IPC interface which should be created<a name="line.229"></a>
+<span class="sourceLineNo">230</span>   * @param ugi the user who is making the calls on the proxy object<a name="line.230"></a>
+<span class="sourceLineNo">231</span>   * @param withRetries certain interfaces have a non-standard retry policy<a name="line.231"></a>
+<span class="sourceLineNo">232</span>   * @return an object containing both the proxy and the associated<a name="line.232"></a>
+<span class="sourceLineNo">233</span>   *         delegation token service it corresponds to<a name="line.233"></a>
+<span class="sourceLineNo">234</span>   * @throws IOException<a name="line.234"></a>
+<span class="sourceLineNo">235</span>   */<a name="line.235"></a>
+<span class="sourceLineNo">236</span>  @SuppressWarnings("unchecked")<a name="line.236"></a>
+<span class="sourceLineNo">237</span>  public static &lt;T&gt; ProxyAndInfo&lt;T&gt; createNonHAProxy(<a name="line.237"></a>
+<span class="sourceLineNo">238</span>      Configuration conf, InetSocketAddress nnAddr, Class&lt;T&gt; xface,<a name="line.238"></a>
+<span class="sourceLineNo">239</span>      UserGroupInformation ugi, boolean withRetries) throws IOException {<a name="line.239"></a>
+<span class="sourceLineNo">240</span>    Text dtService = SecurityUtil.buildTokenService(nnAddr);<a name="line.240"></a>
+<span class="sourceLineNo">241</span>  <a name="line.241"></a>
+<span class="sourceLineNo">242</span>    T proxy;<a name="line.242"></a>
+<span class="sourceLineNo">243</span>    if (xface == ClientProtocol.class) {<a name="line.243"></a>
+<span class="sourceLineNo">244</span>      proxy = (T) createNNProxyWithClientProtocol(nnAddr, conf, ugi,<a name="line.244"></a>
+<span class="sourceLineNo">245</span>          withRetries);<a name="line.245"></a>
+<span class="sourceLineNo">246</span>    } else if (xface == JournalProtocol.class) {<a name="line.246"></a>
+<span class="sourceLineNo">247</span>      proxy = (T) createNNProxyWithJournalProtocol(nnAddr, conf, ugi);<a name="line.247"></a>
+<span class="sourceLineNo">248</span>    } else if (xface == NamenodeProtocol.class) {<a name="line.248"></a>
+<span class="sourceLineNo">249</span>      proxy = (T) createNNProxyWithNamenodeProtocol(nnAddr, conf, ugi,<a name="line.249"></a>
+<span class="sourceLineNo">250</span>          withRetries);<a name="line.250"></a>
+<span class="sourceLineNo">251</span>    } else if (xface == GetUserMappingsProtocol.class) {<a name="line.251"></a>
+<span class="sourceLineNo">252</span>      proxy = (T) createNNProxyWithGetUserMappingsProtocol(nnAddr, conf, ugi);<a name="line.252"></a>
+<span class="sourceLineNo">253</span>    } else if (xface == RefreshUserMappingsProtocol.class) {<a name="line.253"></a>
+<span class="sourceLineNo">254</span>      proxy = (T) createNNProxyWithRefreshUserMappingsProtocol(nnAddr, conf, ugi);<a name="line.254"></a>
+<span class="sourceLineNo">255</span>    } else if (xface == RefreshAuthorizationPolicyProtocol.class) {<a name="line.255"></a>
+<span class="sourceLineNo">256</span>      proxy = (T) createNNProxyWithRefreshAuthorizationPolicyProtocol(nnAddr,<a name="line.256"></a>
+<span class="sourceLineNo">257</span>          conf, ugi);<a name="line.257"></a>
+<span class="sourceLineNo">258</span>    } else if (xface == RefreshCallQueueProtocol.class) {<a name="line.258"></a>
+<span class="sourceLineNo">259</span>      proxy = (T) createNNProxyWithRefreshCallQueueProtocol(nnAddr, conf, ugi);<a name="line.259"></a>
+<span class="sourceLineNo">260</span>    } else {<a name="line.260"></a>
+<span class="sourceLineNo">261</span>      String message = "Unsupported protocol found when creating the proxy " +<a name="line.261"></a>
+<span class="sourceLineNo">262</span>          "connection to NameNode: " +<a name="line.262"></a>
+<span class="sourceLineNo">263</span>          ((xface != null) ? xface.getClass().getName() : "null");<a name="line.263"></a>
+<span class="sourceLineNo">264</span>      LOG.error(message);<a name="line.264"></a>
+<span class="sourceLineNo">265</span>      throw new IllegalStateException(message);<a name="line.265"></a>
+<span class="sourceLineNo">266</span>    }<a name="line.266"></a>
+<span class="sourceLineNo">267</span><a name="line.267"></a>
+<span class="sourceLineNo">268</span>    return new ProxyAndInfo&lt;T&gt;(proxy, dtService);<a name="line.268"></a>
+<span class="sourceLineNo">269</span>  }<a name="line.269"></a>
+<span class="sourceLineNo">270</span>  <a name="line.270"></a>
+<span class="sourceLineNo">271</span>  private static JournalProtocol createNNProxyWithJournalProtocol(<a name="line.271"></a>
+<span class="sourceLineNo">272</span>      InetSocketAddress address, Configuration conf, UserGroupInformation ugi)<a name="line.272"></a>
+<span class="sourceLineNo">273</span>      throws IOException {<a name="line.273"></a>
+<span class="sourceLineNo">274</span>    JournalProtocolPB proxy = (JournalProtocolPB) createNameNodeProxy(address,<a name="line.274"></a>
+<span class="sourceLineNo">275</span>        conf, ugi, JournalProtocolPB.class);<a name="line.275"></a>
+<span class="sourceLineNo">276</span>    return new JournalProtocolTranslatorPB(proxy);<a name="line.276"></a>
+<span class="sourceLineNo">277</span>  }<a name="line.277"></a>
+<span class="sourceLineNo">278</span><a name="line.278"></a>
+<span class="sourceLineNo">279</span>  private static RefreshAuthorizationPolicyProtocol<a name="line.279"></a>
+<span class="sourceLineNo">280</span>      createNNProxyWithRefreshAuthorizationPolicyProtocol(InetSocketAddress address,<a name="line.280"></a>
+<span class="sourceLineNo">281</span>          Configuration conf, UserGroupInformation ugi) throws IOException {<a name="line.281"></a>
+<span class="sourceLineNo">282</span>    RefreshAuthorizationPolicyProtocolPB proxy = (RefreshAuthorizationPolicyProtocolPB)<a name="line.282"></a>
+<span class="sourceLineNo">283</span>        createNameNodeProxy(address, conf, ugi, RefreshAuthorizationPolicyProtocolPB.class);<a name="line.283"></a>
+<span class="sourceLineNo">284</span>    return new RefreshAuthorizationPolicyProtocolClientSideTranslatorPB(proxy);<a name="line.284"></a>
+<span class="sourceLineNo">285</span>  }<a name="line.285"></a>
+<span class="sourceLineNo">286</span>  <a name="line.286"></a>
+<span class="sourceLineNo">287</span>  private static RefreshUserMappingsProtocol<a name="line.287"></a>
+<span class="sourceLineNo">288</span>      createNNProxyWithRefreshUserMappingsProtocol(InetSocketAddress address,<a name="line.288"></a>
+<span class="sourceLineNo">289</span>          Configuration conf, UserGroupInformation ugi) throws IOException {<a name="line.289"></a>
+<span class="sourceLineNo">290</span>    RefreshUserMappingsProtocolPB proxy = (RefreshUserMappingsProtocolPB)<a name="line.290"></a>
+<span class="sourceLineNo">291</span>        createNameNodeProxy(address, conf, ugi, RefreshUserMappingsProtocolPB.class);<a name="line.291"></a>
+<span class="sourceLineNo">292</span>    return new RefreshUserMappingsProtocolClientSideTranslatorPB(proxy);<a name="line.292"></a>
+<span class="sourceLineNo">293</span>  }<a name="line.293"></a>
+<span class="sourceLineNo">294</span><a name="line.294"></a>
+<span class="sourceLineNo">295</span>  private static RefreshCallQueueProtocol<a name="line.295"></a>
+<span class="sourceLineNo">296</span>      createNNProxyWithRefreshCallQueueProtocol(InetSocketAddress address,<a name="line.296"></a>
+<span class="sourceLineNo">297</span>          Configuration conf, UserGroupInformation ugi) throws IOException {<a name="line.297"></a>
+<span class="sourceLineNo">298</span>    RefreshCallQueueProtocolPB proxy = (RefreshCallQueueProtocolPB)<a name="line.298"></a>
+<span class="sourceLineNo">299</span>        createNameNodeProxy(address, conf, ugi, RefreshCallQueueProtocolPB.class);<a name="line.299"></a>
+<span class="sourceLineNo">300</span>    return new RefreshCallQueueProtocolClientSideTranslatorPB(proxy);<a name="line.300"></a>
+<span class="sourceLineNo">301</span>  }<a name="line.301"></a>
+<span class="sourceLineNo">302</span><a name="line.302"></a>
+<span class="sourceLineNo">303</span>  private static GetUserMappingsProtocol createNNProxyWithGetUserMappingsProtocol(<a name="line.303"></a>
+<span class="sourceLineNo">304</span>      InetSocketAddress address, Configuration conf, UserGroupInformation ugi)<a name="line.304"></a>
+<span class="sourceLineNo">305</span>      throws IOException {<a name="line.305"></a>
+<span class="sourceLineNo">306</span>    GetUserMappingsProtocolPB proxy = (GetUserMappingsProtocolPB)<a name="line.306"></a>
+<span class="sourceLineNo">307</span>        createNameNodeProxy(address, conf, ugi, GetUserMappingsProtocolPB.class);<a name="line.307"></a>
+<span class="sourceLineNo">308</span>    return new GetUserMappingsProtocolClientSideTranslatorPB(proxy);<a name="line.308"></a>
+<span class="sourceLineNo">309</span>  }<a name="line.309"></a>
+<span class="sourceLineNo">310</span>  <a name="line.310"></a>
+<span class="sourceLineNo">311</span>  private static NamenodeProtocol createNNProxyWithNamenodeProtocol(<a name="line.311"></a>
+<span class="sourceLineNo">312</span>      InetSocketAddress address, Configuration conf, UserGroupInformation ugi,<a name="line.312"></a>
+<span class="sourceLineNo">313</span>      boolean withRetries) throws IOException {<a name="line.313"></a>
+<span class="sourceLineNo">314</span>    NamenodeProtocolPB proxy = (NamenodeProtocolPB) createNameNodeProxy(<a name="line.314"></a>
+<span class="sourceLineNo">315</span>        address, conf, ugi, NamenodeProtocolPB.class);<a name="line.315"></a>
+<span class="sourceLineNo">316</span>    if (withRetries) { // create the proxy with retries<a name="line.316"></a>
+<span class="sourceLineNo">317</span>      RetryPolicy timeoutPolicy = RetryPolicies.exponentialBackoffRetry(5, 200,<a name="line.317"></a>
+<span class="sourceLineNo">318</span>          TimeUnit.MILLISECONDS);<a name="line.318"></a>
+<span class="sourceLineNo">319</span>      Map&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt; exceptionToPolicyMap <a name="line.319"></a>
+<span class="sourceLineNo">320</span>                     = new HashMap&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt;();<a name="line.320"></a>
+<span class="sourceLineNo">321</span>      RetryPolicy methodPolicy = RetryPolicies.retryByException(timeoutPolicy,<a name="line.321"></a>
+<span class="sourceLineNo">322</span>          exceptionToPolicyMap);<a name="line.322"></a>
+<span class="sourceLineNo">323</span>      Map&lt;String, RetryPolicy&gt; methodNameToPolicyMap <a name="line.323"></a>
+<span class="sourceLineNo">324</span>                     = new HashMap&lt;String, RetryPolicy&gt;();<a name="line.324"></a>
+<span class="sourceLineNo">325</span>      methodNameToPolicyMap.put("getBlocks", methodPolicy);<a name="line.325"></a>
+<span class="sourceLineNo">326</span>      methodNameToPolicyMap.put("getAccessKeys", methodPolicy);<a name="line.326"></a>
+<span class="sourceLineNo">327</span>      proxy = (NamenodeProtocolPB) RetryProxy.create(NamenodeProtocolPB.class,<a name="line.327"></a>
+<span class="sourceLineNo">328</span>          proxy, methodNameToPolicyMap);<a name="line.328"></a>
+<span class="sourceLineNo">329</span>    }<a name="line.329"></a>
+<span class="sourceLineNo">330</span>    return new NamenodeProtocolTranslatorPB(proxy);<a name="line.330"></a>
+<span class="sourceLineNo">331</span>  }<a name="line.331"></a>
+<span class="sourceLineNo">332</span>  <a name="line.332"></a>
+<span class="sourceLineNo">333</span>  private static ClientProtocol createNNProxyWithClientProtocol(<a name="line.333"></a>
+<span class="sourceLineNo">334</span>      InetSocketAddress address, Configuration conf, UserGroupInformation ugi,<a name="line.334"></a>
+<span class="sourceLineNo">335</span>      boolean withRetries) throws IOException {<a name="line.335"></a>
+<span class="sourceLineNo">336</span>    RPC.setProtocolEngine(conf, ClientNamenodeProtocolPB.class, ProtobufRpcEngine.class);<a name="line.336"></a>
+<span class="sourceLineNo">337</span><a name="line.337"></a>
+<span class="sourceLineNo">338</span>    final RetryPolicy defaultPolicy = <a name="line.338"></a>
+<span class="sourceLineNo">339</span>        RetryUtils.getDefaultRetryPolicy(<a name="line.339"></a>
+<span class="sourceLineNo">340</span>            conf, <a name="line.340"></a>
+<span class="sourceLineNo">341</span>            DFSConfigKeys.DFS_CLIENT_RETRY_POLICY_ENABLED_KEY, <a name="line.341"></a>
+<span class="sourceLineNo">342</span>            DFSConfigKeys.DFS_CLIENT_RETRY_POLICY_ENABLED_DEFAULT, <a name="line.342"></a>
+<span class="sourceLineNo">343</span>            DFSConfigKeys.DFS_CLIENT_RETRY_POLICY_SPEC_KEY,<a name="line.343"></a>
+<span class="sourceLineNo">344</span>            DFSConfigKeys.DFS_CLIENT_RETRY_POLICY_SPEC_DEFAULT,<a name="line.344"></a>
+<span class="sourceLineNo">345</span>            SafeModeException.class);<a name="line.345"></a>
+<span class="sourceLineNo">346</span>    <a name="line.346"></a>
+<span class="sourceLineNo">347</span>    final long version = RPC.getProtocolVersion(ClientNamenodeProtocolPB.class);<a name="line.347"></a>
+<span class="sourceLineNo">348</span>    ClientNamenodeProtocolPB proxy = RPC.getProtocolProxy(<a name="line.348"></a>
+<span class="sourceLineNo">349</span>        ClientNamenodeProtocolPB.class, version, address, ugi, conf,<a name="line.349"></a>
+<span class="sourceLineNo">350</span>        NetUtils.getDefaultSocketFactory(conf),<a name="line.350"></a>
+<span class="sourceLineNo">351</span>        org.apache.hadoop.ipc.Client.getTimeout(conf), defaultPolicy)<a name="line.351"></a>
+<span class="sourceLineNo">352</span>            .getProxy();<a name="line.352"></a>
+<span class="sourceLineNo">353</span><a name="line.353"></a>
+<span class="sourceLineNo">354</span>    if (withRetries) { // create the proxy with retries<a name="line.354"></a>
+<span class="sourceLineNo">355</span><a name="line.355"></a>
+<span class="sourceLineNo">356</span>      RetryPolicy createPolicy = RetryPolicies<a name="line.356"></a>
+<span class="sourceLineNo">357</span>          .retryUpToMaximumCountWithFixedSleep(5,<a name="line.357"></a>
+<span class="sourceLineNo">358</span>              HdfsConstants.LEASE_SOFTLIMIT_PERIOD, TimeUnit.MILLISECONDS);<a name="line.358"></a>
+<span class="sourceLineNo">359</span>    <a name="line.359"></a>
+<span class="sourceLineNo">360</span>      Map&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt; remoteExceptionToPolicyMap <a name="line.360"></a>
+<span class="sourceLineNo">361</span>                 = new HashMap&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt;();<a name="line.361"></a>
+<span class="sourceLineNo">362</span>      remoteExceptionToPolicyMap.put(AlreadyBeingCreatedException.class,<a name="line.362"></a>
+<span class="sourceLineNo">363</span>          createPolicy);<a name="line.363"></a>
+<span class="sourceLineNo">364</span>    <a name="line.364"></a>
+<span class="sourceLineNo">365</span>      Map&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt; exceptionToPolicyMap<a name="line.365"></a>
+<span class="sourceLineNo">366</span>                 = new HashMap&lt;Class&lt;? extends Exception&gt;, RetryPolicy&gt;();<a name="line.366"></a>
+<span class="sourceLineNo">367</span>      exceptionToPolicyMap.put(RemoteException.class, RetryPolicies<a name="line.367"></a>
+<span class="sourceLineNo">368</span>          .retryByRemoteException(defaultPolicy,<a name="line.368"></a>
+<span class="sourceLineNo">369</span>              remoteExceptionToPolicyMap));<a name="line.369"></a>
+<span class="sourceLineNo">370</span>      RetryPolicy methodPolicy = RetryPolicies.retryByException(<a name="line.370"></a>
+<span class="sourceLineNo">371</span>          defaultPolicy, exceptionToPolicyMap);<a name="line.371"></a>
+<span class="sourceLineNo">372</span>      Map&lt;String, RetryPolicy&gt; methodNameToPolicyMap <a name="line.372"></a>
+<span class="sourceLineNo">373</span>                 = new HashMap&lt;String, RetryPolicy&gt;();<a name="line.373"></a>
+<span class="sourceLineNo">374</span>    <a name="line.374"></a>
+<span class="sourceLineNo">375</span>      methodNameToPolicyMap.put("create", methodPolicy);<a name="line.375"></a>
+<span class="sourceLineNo">376</span>    <a name="line.376"></a>
+<span class="sourceLineNo">377</span>      proxy = (ClientNamenodeProtocolPB) RetryProxy.create(<a name="line.377"></a>
+<span class="sourceLineNo">378</span>          ClientNamenodeProtocolPB.class,<a name="line.378"></a>
+<span class="sourceLineNo">379</span>          new DefaultFailoverProxyProvider&lt;ClientNamenodeProtocolPB&gt;(<a name="line.379"></a>
+<span class="sourceLineNo">380</span>              ClientNamenodeProtocolPB.class, proxy),<a name="line.380"></a>
+<span class="sourceLineNo">381</span>          methodNameToPolicyMap,<a name="line.381"></a>
+<span class="sourceLineNo">382</span>          defaultPolicy);<a name="line.382"></a>
+<span class="sourceLineNo">383</span>    }<a name="line.383"></a>
+<span class="sourceLineNo">384</span>    return new ClientNamenodeProtocolTranslatorPB(proxy);<a name="line.384"></a>
+<span class="sourceLineNo">385</span>  }<a name="line.385"></a>
+<span class="sourceLineNo">386</span>  <a name="line.386"></a>
+<span class="sourceLineNo">387</span>  private static Object createNameNodeProxy(InetSocketAddress address,<a name="line.387"></a>
+<span class="sourceLineNo">388</span>      Configuration conf, UserGroupInformation ugi, Class&lt;?&gt; xface)<a name="line.388"></a>
+<span class="sourceLineNo">389</span>      throws IOException {<a name="line.389"></a>
+<span class="sourceLineNo">390</span>    RPC.setProtocolEngine(conf, xface, ProtobufRpcEngine.class);<a name="line.390"></a>
+<span class="sourceLineNo">391</span>    Object proxy = RPC.getProxy(xface, RPC.getProtocolVersion(xface), address,<a name="line.391"></a>
+<span class="sourceLineNo">392</span>        ugi, conf, NetUtils.getDefaultSocketFactory(conf));<a name="line.392"></a>
+<span class="sourceLineNo">393</span>    return proxy;<a name="line.393"></a>
+<span class="sourceLineNo">394</span>  }<a name="line.394"></a>
+<span class="sourceLineNo">395</span><a name="line.395"></a>
+<span class="sourceLineNo">396</span>  /** Gets the configured Failover proxy provider's class */<a name="line.396"></a>
+<span class="sourceLineNo">397</span>  @VisibleForTesting<a name="line.397"></a>
+<span class="sourceLineNo">398</span>  public static &lt;T&gt; Class&lt;FailoverProxyProvider&lt;T&gt;&gt; getFailoverProxyProviderClass(<a name="line.398"></a>
+<span class="sourceLineNo">399</span>      Configuration conf, URI nameNodeUri, Class&lt;T&gt; xface) throws IOException {<a name="line.399"></a>
+<span class="sourceLineNo">400</span>    if (nameNodeUri == null) {<a name="line.400"></a>
+<span class="sourceLineNo">401</span>      return null;<a name="line.401"></a>
+<span class="sourceLineNo">402</span>    }<a name="line.402"></a>
+<span class="sourceLineNo">403</span>    String host = nameNodeUri.getHost();<a name="line.403"></a>
+<span class="sourceLineNo">404</span>  <a name="line.404"></a>
+<span class="sourceLineNo">405</span>    String configKey = DFS_CLIENT_FAILOVER_PROXY_PROVIDER_KEY_PREFIX + "."<a name="line.405"></a>
+<span class="sourceLineNo">406</span>        + host;<a name="line.406"></a>
+<span class="sourceLineNo">407</span>    try {<a name="line.407"></a>
+<span class="sourceLineNo">408</span>      @SuppressWarnings("unchecked")<a name="line.408"></a>
+<span class="sourceLineNo">409</span>      Class&lt;FailoverProxyProvider&lt;T&gt;&gt; ret = (Class&lt;FailoverProxyProvider&lt;T&gt;&gt;) conf<a name="line.409"></a>
+<span class="sourceLineNo">410</span>          .getClass(configKey, null, FailoverProxyProvider.class);<a name="line.410"></a>
+<span class="sourceLineNo">411</span>      if (ret != null) {<a name="line.411"></a>
+<span class="sourceLineNo">412</span>        // If we found a proxy provider, then this URI should be a logical NN.<a name="line.412"></a>
+<span class="sourceLineNo">413</span>        // Given that, it shouldn't have a non-default port number.<a name="line.413"></a>
+<span class="sourceLineNo">414</span>        int port = nameNodeUri.getPort();<a name="line.414"></a>
+<span class="sourceLineNo">415</span>        if (port &gt; 0 &amp;&amp; port != NameNode.DEFAULT_PORT) {<a name="line.415"></a>
+<span class="sourceLineNo">416</span>          throw new IOException("Port " + port + " specified in URI "<a name="line.416"></a>
+<span class="sourceLineNo">417</span>              + nameNodeUri + " but host '" + host<a name="line.417"></a>
+<span class="sourceLineNo">418</span>              + "' is a logical (HA) namenode"<a name="line.418"></a>
+<span class="sourceLineNo">419</span>              + " and does not use port information.");<a name="line.419"></a>
+<span class="sourceLineNo">420</span>        }<a name="line.420"></a>
+<span class="sourceLineNo">421</span>      }<a name="line.421"></a>
+<span class="sourceLineNo">422</span>      return ret;<a name="line.422"></a>
+<span class="sourceLineNo">423</span>    } catch (RuntimeException e) {<a name="line.423"></a>
+<span class="sourceLineNo">424</span>      if (e.getCause() instanceof ClassNotFoundException) {<a name="line.424"></a>
+<span class="sourceLineNo">425</span>        throw new IOException("Could not load failover proxy provider class "<a name="line.425"></a>
+<span class="sourceLineNo">426</span>            + conf.get(configKey) + " which is configured for authority "<a name="line.426"></a>
+<span class="sourceLineNo">427</span>            + nameNodeUri, e);<a name="line.427"></a>
+<span class="sourceLineNo">428</span>      } else {<a name="line.428"></a>
+<span class="sourceLineNo">429</span>        throw e;<a name="line.429"></a>
+<span class="sourceLineNo">430</span>      }<a name="line.430"></a>
+<span class="sourceLineNo">431</span>    }<a name="line.431"></a>
+<span class="sourceLineNo">432</span>  }<a name="line.432"></a>
+<span class="sourceLineNo">433</span><a name="line.433"></a>
+<span class="sourceLineNo">434</span>  /** Creates the Failover proxy provider instance*/<a name="line.434"></a>
+<span class="sourceLineNo">435</span>  @VisibleForTesting<a name="line.435"></a>
+<span class="sourceLineNo">436</span>  public static &lt;T&gt; FailoverProxyProvider&lt;T&gt; createFailoverProxyProvider(<a name="line.436"></a>
+<span class="sourceLineNo">437</span>      Configuration conf, Class&lt;FailoverProxyProvider&lt;T&gt;&gt; failoverProxyProviderClass,<a name="line.437"></a>
+<span class="sourceLineNo">438</span>      Class&lt;T&gt; xface, URI nameNodeUri) throws IOException {<a name="line.438"></a>
+<span class="sourceLineNo">439</span>    Preconditions.checkArgument(<a name="line.439"></a>
+<span class="sourceLineNo">440</span>        xface.isAssignableFrom(NamenodeProtocols.class),<a name="line.440"></a>
+<span class="sourceLineNo">441</span>        "Interface %s is not a NameNode protocol", xface);<a name="line.441"></a>
+<span class="sourceLineNo">442</span>    try {<a name="line.442"></a>
+<span class="sourceLineNo">443</span>      Constructor&lt;FailoverProxyProvider&lt;T&gt;&gt; ctor = failoverProxyProviderClass<a name="line.443"></a>
+<span class="sourceLineNo">444</span>          .getConstructor(Configuration.class, URI.class, Class.class);<a name="line.444"></a>
+<span class="sourceLineNo">445</span>      FailoverProxyProvider&lt;T&gt; provider = ctor.newInstance(conf, nameNodeUri,<a name="line.445"></a>
+<span class="sourceLineNo">446</span>          xface);<a name="line.446"></a>
+<span class="sourceLineNo">447</span>      return provider;<a name="line.447"></a>
+<span class="sourceLineNo">448</span>    } catch (Exception e) {<a name="line.448"></a>
+<span class="sourceLineNo">449</span>      String message = "Couldn't create proxy provider " + failoverProxyProviderClass;<a name="line.449"></a>
+<span class="sourceLineNo">450</span>      if (LOG.isDebugEnabled()) {<a name="line.450"></a>
+<span class="sourceLineNo">451</span>        LOG.debug(message, e);<a name="line.451"></a>
+<span class="sourceLineNo">452</span>      }<a name="line.452"></a>
+<span class="sourceLineNo">453</span>      if (e.getCause() instanceof IOException) {<a name="line.453"></a>
+<span class="sourceLineNo">454</span>        throw (IOException) e.getCause();<a name="line.454"></a>
+<span class="sourceLineNo">455</span>      } else {<a name="line.455"></a>
+<span class="sourceLineNo">456</span>        throw new IOException(message, e);<a name="line.456"></a>
+<span class="sourceLineNo">457</span>      }<a name="line.457"></a>
+<span class="sourceLineNo">458</span>    }<a name="line.458"></a>
+<span class="sourceLineNo">459</span>  }<a name="line.459"></a>
+<span class="sourceLineNo">460</span><a name="line.460"></a>
+<span class="sourceLineNo">461</span>}<a name="line.461"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
