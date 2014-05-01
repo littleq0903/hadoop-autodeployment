@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# export JAVA_HOME=/home/y/libexec/jdk1.6.0/
 
-export HADOOP_JOB_HISTORYSERVER_HEAPSIZE=1000
+export HADOOP_JOB_HISTORYSERVER_HEAPSIZE=${HADOOP_JOB_HISTORYSERVER_HEAPSIZE:-"1000"}
 
 export HADOOP_MAPRED_ROOT_LOGGER=INFO,RFA
 
