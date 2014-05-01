@@ -17,4 +17,70 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
+
+   <property>
+      <name>hadoop.tmp.dir</name>
+      <value>/home/hadoop/app/hadoop/tmp</value>
+   </property>
+
+   <property>
+      <name>fs.defaultFS</name>
+      <value><!-- TODO: namenode url --></value>
+   </property>
+<!-- kerberos
+   <property>
+      <name>hadoop.security.authentication</name>
+      <value>kerberos</value>
+   </property>
+
+   <property>
+      <name>hadoop.security.auth_to_local</name>
+      <value>
+         RULE:[2:$1@$0](jhs@)s/.*/mapred/    
+         RULE:[2:$1@$0]([nd]n@)s/.*/hdfs/
+         RULE:[2:$1@$0](HTTP@)s/.*/hdfs/
+         RULE:[2:$1@$0]([nr]m@)s/.*/yarn/    
+         RULE:[2:$1@$0](hbase@)s/.*/hbase/
+         DEFAULT
+      </value>
+   </property>
+
+   <property>
+      <name>hadoop.http.authentication.type</name>
+      <value>kerberos</value>
+   </property>
+
+   <property>
+     <name>hadoop.http.authentication.kerberos.principal</name>                                                                                                                            
+     <value></value>                                                                                                                                                        
+   </property>                                                                                                                                                                             
+                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+     <name>hadoop.http.authentication.kerberos.keytab</name>                                                                                                                               
+     <value></value>                                                                                                                              
+   </property>                                                                                                                                                                             
+            
+
+   for compression                                                                                                                                                                              
+   <property>                                                                                                                                                                              
+      <name>hadoop.http.authentication.simple.anonymous.allowed</name>                                                                                                                     
+      <value>false</value>                                                                                                                                                                 
+   </property>                                                                                                                                                                             
+                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+      <name>io.compression.codecs</name>                                                                                                                                                    
+      <value>org.apache.hadoop.io.compress.GzipCodec,org.apache.hadoop.io.compress.DefaultCodec,org.apache.hadoop.io.compress.BZip2Codec,com.hadoop.compression.lzo.LzoCodec,com.hadoop.compression.lzo.LzopCodec</value>
+   </property>                                                                                                                                                                             
+                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+      <name>io.compression.codec.lzo.class</name>                                                                                                                                           
+      <value>com.hadoop.compression.lzo.LzoCodec</value>                                                                                                                                    
+   </property>    
+-->
+   <property>
+      <name>hadoop.security.authorization</name>
+      <value>true</value>
+   </property>
+   
 </configuration>
+

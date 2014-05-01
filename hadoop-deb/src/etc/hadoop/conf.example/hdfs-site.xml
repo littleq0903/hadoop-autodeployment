@@ -18,4 +18,109 @@
 
 <configuration>
 
+   <property>
+      <name>dfs.nameservices</name>
+      <value><!-- TODO --></value>
+   </property>
+
+   <property>
+      <name>dfs.replication</name>
+      <value><!-- TODO --></value>
+   </property>
+
+   <property>
+      <name>dfs.namenode.name.dir</name>
+      <value>file:///var/lib/hadoop/hdfs/name/</value>
+   </property>
+  
+   <property>
+      <name>dfs.datanode.data.dir</name>
+      <value>file:///var/lib/hadoop/hdfs/data/</value>
+   </property>
+  
+   <property>
+      <name>dfs.datanode.address</name>
+      <value>0.0.0.0:910</value>
+   </property>
+  
+   <property>
+      <name>dfs.datanode.http.address</name>
+      <value>0.0.0.0:975</value>
+   </property>
+
+   <property>
+      <name>dfs.cluster.administrators</name>
+      <value> hadoop</value>
+   </property>
+
+   <property>
+      <name>dfs.permissions</name>
+      <value>true</value>
+   </property>
+
+   <property>
+      <name>dfs.block.access.token.enable</name>
+      <value>true</value>
+   </property>
+
+   <property>
+      <name>dfs.permissions.supergroup</name>
+      <value>hadoop</value>
+   </property>
+
+   <property>
+      <name>dfs.client.read.shortcircuit</name>
+      <value>true</value>
+   </property>
+
+   <property>
+      <name>dfs.client.read.shortcircuit.streams.cache.size</name>
+      <value>4096</value>
+   </property>
+
+   <property>
+      <name>dfs.block.local-path-access.user</name>
+      <value>*</value>
+   </property>
+
+   <property>                                                                                                                                                                              
+      <name>dfs.domain.socket.path</name>                                                                                                                                                   
+      <value>/run/hadoop/hdfs/dn_socket</value>                                                                                                                                             
+   </property>
+
+   <property>
+      <name>dfs.namenode.avoid.write.stale.datanode</name>
+      <value>true</value>
+   </property>
+
+   <property>
+      <name>dfs.namenode.avoid.read.stale.datanode</name>
+      <value>true</value>
+   </property>
+                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+      <name>dfs.namenode.avoid.write.stale.datanode</name>                                                                                                                                  
+      <value>true</value>                                                                                                                                                                   
+   </property>                                                                                                                                                                             
+                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+      <name>dfs.datanode.data.dir.perm</name>                                                                                                                                               
+      <value>750</value>                                                                                                                                                                    
+   </property>                                                                                                                                                                             
+<!---                                                                                                                                                                                          
+   <property>                                                                                                                                                                              
+      <name>dfs.namenode.handler.count</name>                                                                                                                                               
+      <value>100</value>                                                                                                                                                                    
+   </property>                                                                                                                                                                             
+-->                                                                                                                                                                                     
+   <property>                                                                                                                                                                              
+      <name>dfs.namenode.safemode.threshold-pct</name>                                                                                                                                      
+      <value>1.0f</value>                                                                                                                                                                   
+   </property>                                                                                                                                                                             
+<!-- for nfs
+   <property>    
+      <name>dfs.nfs3.dump.dir</name>    
+      <value>/var/lib/hadoop/hdfs/.hdfs-nfs</value>
+   </property>
+-->
 </configuration>
