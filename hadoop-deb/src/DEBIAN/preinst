@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # preinst script for hadoop
 #
 # see: dh_installdeb(1)
@@ -16,7 +16,7 @@ set -e
 
 add_user() {
 	if ! getent passwd $1 >/dev/null ; then
-		if [ $# == 2 ]; then
+		if [ $# = '2' ]; then
 			useradd \
 				--$2 \
 				--no-create-home \
@@ -25,7 +25,7 @@ add_user() {
 				--shell /bin/bash \
 				$1 >/dev/null 2>/dev/null || :
 			usermod --append --groups hadoop $1 || :
-		elif [ $# == 1 ]; then 
+		elif [ $# = '1' ]; then 
 			useradd \
 				--gid hadoop \
 				--create-home \
@@ -33,8 +33,20 @@ add_user() {
 				--shell /bin/bash \
 				$1 >/dev/null 2>/dev/null || :
 			passprompt="\e[01;31mSetting hadoop administrator's password\e[00m"
-			echo 
-			passwd $1 
+			echo -e $passprompt
+			echo "Enter Password:"
+			read -s pass1
+			echo "Retry Password:"
+			read -s pass2
+			while [[ ! $pass1 -eq $pass2 ]] && [[ -n $pass1 ]]
+			do
+				echo -e "\e[01;31mPassword mismatch or empty\e[00m"
+                        	echo "Enter Password:"
+                 	        read -s pass1
+                        	echo "Retry Password:"
+                        	read -s pass2 
+			done 
+			echo "$1:$pass1" | chpasswd
 		else
 			return 1;
 		fi
