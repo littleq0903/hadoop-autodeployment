@@ -1,9 +1,8 @@
 Package: hadoop
 Source: hadoop
-Version: 2.2.0.2.0.11.0-1
+Version: 2.4.0-0.0.1
 Architecture: all
 Maintainer: Atkins <dev@bigtop.apache.org>
-Depends: openjdk-7-jdk, useradd, groupadd
 Section: misc
 Priority: extra
 Homepage: http://hadoop.apache.org/
