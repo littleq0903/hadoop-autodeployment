@@ -13,8 +13,20 @@ fi
 
 
 HADOOP_SCRIPT_HOME=/usr/sbin
+if [ -x /lib/lsb/init-functions ]
+   . /lib/lsb/init-functions
+   SHOW_MEG=log_daemon_msg
+   SHOW_RESULT=log_end_msg
+elif
+   SHOW_MEG=echo
+   SHOW_RESULT=show_result
+fi
 
-. /lib/lsb/init-functions
+show_result() {
+   if [ $1 -eq '0' ]; then
+      echo '[OK]'
+   fi
+}
 
 create_pid_dir() {
    mkdir -p /var/run/hadoop/hdfs /var/run/hadoop/yarn /var/run/hadoop/mapred
@@ -66,20 +78,20 @@ stop_hadoop_slave() {
 case $1 in
    start)
       create_pid_dir
-      log_daemon_msg "Starting hadoop master daemons"
+      $SHOW_MSG "Starting hadoop master daemons"
       start_hadoop_master
-      log_end_msg 0
-      log_daemon_msg "Starting hadoop slave daemons"
+      $SHOW_RESULT 0
+      $SHOW_MSG "Starting hadoop slave daemons"
       start_hadoop_slave
-      log_end_msg 0
+      $SHOW_RESULT 0
       ;;
    stop)
-      log_daemon_msg "Stopping hadoop master daemons"
+      $SHOW_MSG "Stopping hadoop master daemons"
       stop_hadoop_master
-      log_end_msg 0
-      log_daemon_msg "Stopping hadoop slave daemons"
+      $SHOW_RESULT 0
+      $SHOW_MSG "Stopping hadoop slave daemons"
       stop_hadoop_slave
-      log_end_msg 0
+      $SHOW_RESULT 0
       ;;
    restart)
       $0 stop
