@@ -16,6 +16,13 @@ HADOOP_SCRIPT_HOME=/usr/sbin
 
 . /lib/lsb/init-functions
 
+create_pid_dir() {
+   mkdir -p /var/run/hadoop/hdfs /var/run/hadoop/yarn /var/run/hadoop/mapred
+   chown hdfs:hadoop /var/run/hadoop/hdfs
+   chown yarn:hadoop /var/run/hadoop/yarn
+   chown mapred:hadoop /var/run/hadoop/mapred
+}
+
 start_hadoop_master() {
    if [ ! -d "$HADOOP_SCRIPT_HOME" ] ; then
       echo "... directory $HADOOP_SCRIPT_HOME does not exist!" >&2
@@ -23,7 +30,7 @@ start_hadoop_master() {
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh start resourcemanager"
    su hdfs -c "$HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs start namenode"
-   su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh start historyserver"  
+   su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh start historyserver"
 }
 
 start_hadoop_slave() {
@@ -42,7 +49,7 @@ stop_hadoop_master() {
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh stop resourcemanager"
    su hdfs -c "$HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs stop namenode"
-   su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh stop historyserver"  
+   su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh stop historyserver"
 }
 
 stop_hadoop_master() {
@@ -56,30 +63,31 @@ stop_hadoop_master() {
 
 
 case $1 in
-  start)
-    log_daemon_msg "Starting hadoop master daemons"
-    start_hadoop_master 
-    log_end_msg 0
-    log_daemon_msg "Starting hadoop slave daemons"
-    start_hadoop_slave
-    log_end_msg 0
-    ;;
-  stop)
-    log_daemon_msg "Stopping hadoop master daemons"
-    stop_hadoop_master 
-    log_end_msg 0
-    log_daemon_msg "Stopping hadoop slave daemons"
-    stpo_hadoop_slave
-    log_end_msg 0
-    ;;
-  restart)
-    $0 stop
-    $0 start
-    ;;
-  status)
-    jps
-    ;;
-  *)
-    echo $usage
-    ;;
+   start)
+      create_pid_dir
+      log_daemon_msg "Starting hadoop master daemons"
+      start_hadoop_master
+      log_end_msg 0
+      log_daemon_msg "Starting hadoop slave daemons"
+      start_hadoop_slave
+      log_end_msg 0
+      ;;
+   stop)
+      log_daemon_msg "Stopping hadoop master daemons"
+      stop_hadoop_master
+      log_end_msg 0
+      log_daemon_msg "Stopping hadoop slave daemons"
+      stpo_hadoop_slave
+      log_end_msg 0
+      ;;
+   restart)
+      $0 stop
+      $0 start
+      ;;
+   status)
+      jps
+      ;;
+   *)
+      echo $usage
+      ;;
 esac
