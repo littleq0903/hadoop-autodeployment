@@ -15,44 +15,45 @@
 -->
 
 <configuration>
-   <name>mapreduce.framework.name</name>
+   <property>
+      <name>mapreduce.framework.name</name>
       <value>yarn</value>
    </property>
 
-   <property>                                                                                                                                                                              
+   <property>
       <name>mapreduce.cluster.local.dir</name>
-      <value>/var/lib/hadoop/mapred</value>                                                                                                                                                 
-   </property> 
+      <value>/var/lib/hadoop/mapred</value>
+   </property>
 
-   <property>                                                                                                                                                                              
-      <name>yarn.app.mapreduce.am.staging-dir</name>                                                                                                                                        
-      <value>/hadoop/staging</value>                                                                                                                                                        
-   </property>                                                                                                                                                                             
-                                                                                                                                                                                          
-   <property>                                                                                                                                                                              
-      <name>mapreduce.jobhistory.intermediate-done-dir</name>                                                                                                                               
+   <property>
+      <name>yarn.app.mapreduce.am.staging-dir</name>
+      <value>/hadoop/staging</value>
+   </property>
+
+   <property>
+      <name>mapreduce.jobhistory.intermediate-done-dir</name>
       <value>/hadoop/done_intermediate</value>
-   </property>                                                                                                                                                                             
-                                                                                                                                                                                          
-   <property>                                                                                                                                                                              
-      <name>mapreduce.jobhistory.done-dir</name>                                                                                                                                            
+   </property>
+
+   <property>
+      <name>mapreduce.jobhistory.done-dir</name>
       <value>/hadoop/done</value>
-   </property>                    
+   </property>
 <!-- defult queuename
    <property>
       <name>mapreduce.job.queuename</name>
       <value>plsm1</value>
-   </property>                                                                                                                                                                             
+   </property>
 -->
 <!-- kerberos
-   <property>                                                                                                                                                                             
+   <property>
      <name>mapreduce.jobhistory.keytab</name>
-     <value></value>                                                                                                                                
-   </property>                                                                                                                                                                            
-                                                                                                                                                                                          
-   <property>                                                                                                                                                                             
+     <value></value>
+   </property>
+
+   <property>
      <name>mapreduce.jobhistory.principal</name>
      <value></value>
    </property>
--->                                                                                                                                                                            
+-->
 </configuration>
