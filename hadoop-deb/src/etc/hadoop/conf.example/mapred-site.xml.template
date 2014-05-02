@@ -39,6 +39,16 @@
       <name>mapreduce.jobhistory.done-dir</name>
       <value>/hadoop/done</value>
    </property>
+
+   <property>
+      <name>mapreduce.job.ubertask.enable</name>
+      <value>true</value>
+   </property>
+
+   <property>
+      <name>mapreduce.job.ubertask.maxmaps</name>
+      <value>9</value>
+   </property>
 <!-- defult queuename
    <property>
       <name>mapreduce.job.queuename</name>
