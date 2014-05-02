@@ -2,7 +2,7 @@ Package: hadoop
 Source: hadoop
 Version: 2.4.0-0.0.1
 Architecture: all
-Maintainer: Atkins <dev@bigtop.apache.org>
+Maintainer: Atkins <atkinschang@gmail.com>
 Section: misc
 Priority: extra
 Homepage: http://hadoop.apache.org/

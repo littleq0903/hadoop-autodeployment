@@ -82,7 +82,7 @@
 
    <property>
       <name>dfs.domain.socket.path</name>
-      <value>/run/hadoop/hdfs/dn_socket</value>
+      <value>/var/run/hadoop/hdfs/dn_socket</value>
    </property>
 
    <property>
