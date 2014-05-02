@@ -20,7 +20,7 @@ set -e
 HIVE_HOME=/usr/lib/hive
 # log dir
 LOG_HOME=/var/log/hadoop
-LOG_PREM=0775
+LOG_PREM=1777
 # data dir
 DATA_HOME=/var/lib/hadoop
 DATA_PREM=1777
