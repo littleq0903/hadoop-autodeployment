@@ -30,7 +30,7 @@ show_result() {
 
 create_pid_dir() {
    mkdir -p /var/run/hadoop/hbase
-   chown zookeeper:hadoop /var/run/hadoop/hbase
+   chown hbase:hadoop /var/run/hadoop/hbase
    chmod 0755 /var/run/hadoop/hbase
 }
 
