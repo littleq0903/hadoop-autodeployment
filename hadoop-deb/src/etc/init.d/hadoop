@@ -21,6 +21,7 @@ create_pid_dir() {
    chown hdfs:hadoop /var/run/hadoop/hdfs
    chown yarn:hadoop /var/run/hadoop/yarn
    chown mapred:hadoop /var/run/hadoop/mapred
+   chmod 0755 /var/run/hadoop/hdfs /var/run/hadoop/yarn /var/run/hadoop/mapred
 }
 
 start_hadoop_master() {
@@ -29,7 +30,7 @@ start_hadoop_master() {
       return 1
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh start resourcemanager"
-   su hdfs -c "$HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs start namenode"
+   su hdfs -c "$HADOOP_SCRIPT_HOME/hadoop-daemon.sh --script hdfs start namenode"
    su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh start historyserver"
 }
 
@@ -39,7 +40,7 @@ start_hadoop_slave() {
       return 1
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh start nodemanager"
-   $HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs start datanode
+   $HADOOP_SCRIPT_HOME/hadoop-daemon.sh --script hdfs start datanode
 }
 
 stop_hadoop_master() {
@@ -48,17 +49,17 @@ stop_hadoop_master() {
       return 1
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh stop resourcemanager"
-   su hdfs -c "$HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs stop namenode"
+   su hdfs -c "$HADOOP_SCRIPT_HOME/hadoop-daemon.sh --script hdfs stop namenode"
    su mapred -c "$HADOOP_SCRIPT_HOME/mr-jobhistory-daemon.sh stop historyserver"
 }
 
-stop_hadoop_master() {
+stop_hadoop_slave() {
    if [ ! -d "$HADOOP_SCRIPT_HOME" ] ; then
       echo "... directory $HADOOP_SCRIPT_HOME does not exist!" >&2
       return 1
    fi
    su yarn -c "$HADOOP_SCRIPT_HOME/yarn-daemon.sh stop nodemanager"
-   $HADOOP_SCRIPT_HOME/sbin/hadoop-daemon.sh --script hdfs stop datanode
+   $HADOOP_SCRIPT_HOME/hadoop-daemon.sh --script hdfs stop datanode
 }
 
 
@@ -77,7 +78,7 @@ case $1 in
       stop_hadoop_master
       log_end_msg 0
       log_daemon_msg "Stopping hadoop slave daemons"
-      stpo_hadoop_slave
+      stop_hadoop_slave
       log_end_msg 0
       ;;
    restart)

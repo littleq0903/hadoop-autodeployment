@@ -1,3 +1,9 @@
+#!/bin/sh
+#
+
+JSVC_HOME=/usr/bin
+HADOOP_SECURE_DN_USER=hdfs
+
 HADOOP_CONF_DIR=/etc/hadoop
 HADOOP_LOG_DIR=/var/log/hadoop/hdfs
 HADOOP_PID_DIR=/var/run/hadoop/hdfs

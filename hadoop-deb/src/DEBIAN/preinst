@@ -13,6 +13,7 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+HADOOP_INIT_SCRIPT=/etc/init.d/hadoop
 
 add_user() {
 	if ! getent passwd $1 >/dev/null ; then
@@ -56,8 +57,9 @@ add_user() {
 
 case "$1" in
    install|upgrade)
-   	  # TODO: stop hadoop daemon before install
-   	   
+      if [ -x ${HADOOP_INIT_SCRIPT} ]; then
+         ${HADOOP_INIT_SCRIPT} stop
+      fi   
       # add group      
       if ! getent group hadoop >/dev/null; then
          groupadd --system hadoop >/dev/null 2>/dev/null || :
