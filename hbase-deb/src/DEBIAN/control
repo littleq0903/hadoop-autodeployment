@@ -1,0 +1,10 @@
+Package: hbase
+Source: hbase
+Version: 0.98.1-0.0.1
+Architecture: all
+Maintainer: Atkins <atkinschang@gmail.com>
+Section: misc
+Priority: extra
+Homepage: http://hbase.apache.org/
+Description: hbase
+

@@ -1,0 +1,104 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>1.2.&nbsp;Simple User Access to Apache HBase</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="security.html" title="Chapter&nbsp;1.&nbsp;Secure Apache HBase"><link rel="up" href="security.html" title="Chapter&nbsp;1.&nbsp;Secure Apache HBase"><link rel="prev" href="security.html" title="Chapter&nbsp;1.&nbsp;Secure Apache HBase"><link rel="next" href="hbase.tags.html" title="1.3.&nbsp;Tags"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1.2.&nbsp;Simple User Access to Apache HBase</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="security.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="hbase.tags.html">Next</a></td></tr></table><hr></div><div class="section" title="1.2.&nbsp;Simple User Access to Apache HBase"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="hbase.secure.simpleconfiguration"></a>1.2.&nbsp;Simple User Access to Apache HBase</h2></div></div></div><p>Newer releases of Apache HBase (&gt;= 0.92) support optional SASL authentication of clients<sup>[<a name="d6578e210" href="#ftn.d6578e210" class="footnote">2</a>]</sup>.</p><p>This describes how to set up Apache HBase and clients for simple user access to HBase resources.</p><div class="section" title="1.2.1.&nbsp;Simple Versus Secure Access"><div class="titlepage"><div><div><h3 class="title"><a name="d6578e219"></a>1.2.1.&nbsp;Simple Versus Secure Access</h3></div></div></div><p>
+        The following section shows how to set up simple user access. Simple user access is
+        not a secure method of operating HBase. This method is used to prevent users from making
+        mistakes. It can be used to mimic the Access Control using on a development system without having to
+        set up Kerberos.
+    </p><p>
+        This method is not used to prevent malicious or hacking attempts. To make HBase secure against these
+        types of attacks, you must configure HBase for secure operation. Refer to the section
+        <a class="link" href="hbase.accesscontrol.configuration.html" title="1.4.&nbsp;Access Control">Secure Client Access to HBase</a> and complete all of the steps described
+        there.
+    </p><div class="section" title="1.2.1.1.&nbsp;Prerequisites"><div class="titlepage"><div><div><h4 class="title"><a name="d6578e229"></a>1.2.1.1.&nbsp;Prerequisites</h4></div></div></div><p>
+        None
+    </p><div class="section" title="1.2.1.1.1.&nbsp;Server-side Configuration for Simple User Access Operation"><div class="titlepage"><div><div><h5 class="title"><a name="d6578e234"></a>1.2.1.1.1.&nbsp;Server-side Configuration for Simple User Access Operation</h5></div></div></div><p>
+        Add the following to the <code class="code">hbase-site.xml</code> file on every server machine in the cluster:
+    </p><pre class="programlisting">
+      &lt;property&gt;
+        &lt;name&gt;hbase.security.authentication&lt;/name&gt;
+        &lt;value&gt;simple&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;property&gt;
+        &lt;name&gt;hbase.security.authorization&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;property&gt;
+        &lt;name&gt;hbase.coprocessor.master.classes&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.security.access.AccessController&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;property&gt;
+        &lt;name&gt;hbase.coprocessor.region.classes&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.security.access.AccessController&lt;/value&gt;
+      &lt;/property&gt;
+    </pre><p>
+        For 0.94, add the following to the <code class="code">hbase-site.xml</code> file on every server machine in the cluster:
+    </p><pre class="programlisting">
+      &lt;property&gt;
+        &lt;name&gt;hbase.rpc.engine&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.ipc.SecureRpcEngine&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;property&gt;
+        &lt;name&gt;hbase.coprocessor.master.classes&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.security.access.AccessController&lt;/value&gt;
+      &lt;/property&gt;
+      &lt;property&gt;
+        &lt;name&gt;hbase.coprocessor.region.classes&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.security.access.AccessController&lt;/value&gt;
+      &lt;/property&gt; 
+    </pre><p>
+       A full shutdown and restart of HBase service is required when deploying
+       these configuration changes.
+    </p></div><div class="section" title="1.2.1.1.2.&nbsp;Client-side Configuration for Simple User Access Operation"><div class="titlepage"><div><div><h5 class="title"><a name="d6578e253"></a>1.2.1.1.2.&nbsp;Client-side Configuration for Simple User Access Operation</h5></div></div></div><p>
+        Add the following to the <code class="code">hbase-site.xml</code> file on every client:
+    </p><pre class="programlisting">
+      &lt;property&gt;
+        &lt;name&gt;hbase.security.authentication&lt;/name&gt;
+        &lt;value&gt;simple&lt;/value&gt;
+      &lt;/property&gt;
+    </pre><p>
+        For 0.94, add the following to the <code class="code">hbase-site.xml</code> file on every server machine in the cluster:
+    </p><pre class="programlisting">
+      &lt;property&gt;
+        &lt;name&gt;hbase.rpc.engine&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hbase.ipc.SecureRpcEngine&lt;/value&gt;
+      &lt;/property&gt;
+    </pre><p>
+        Be advised that if the <code class="code">hbase.security.authentication</code>
+        in the client- and server-side site files do not match, the client will
+        not be able to communicate with the cluster.
+    </p></div><div class="section" title="1.2.1.1.3.&nbsp;Client-side Configuration for Simple User Access Operation - Thrift Gateway"><div class="titlepage"><div><div><h5 class="title"><a name="d6578e275"></a>1.2.1.1.3.&nbsp;Client-side Configuration for Simple User Access Operation - Thrift Gateway</h5></div></div></div><p>The Thrift gateway user will need access. For example, to give the Thrift API user, <code class="code">thrift_server</code>, administrative access, a command such as this one will suffice:
+    </p><pre class="programlisting">
+    grant 'thrift_server', 'RWCA'
+    </pre><p> For more information about ACLs, please see the <a class="link" href="hbase.accesscontrol.configuration.html" title="1.4.&nbsp;Access Control">Access Control</a> section
+    </p><p>
+        The Thrift gateway will authenticate with HBase using the supplied
+        credential. No authentication will be performed by the Thrift gateway
+        itself. All client access via the Thrift gateway will use the Thrift
+        gateway's credential and have its privilege.
+    </p></div><div class="section" title="1.2.1.1.4.&nbsp;Client-side Configuration for Simple User Access Operation - REST Gateway"><div class="titlepage"><div><div><h5 class="title"><a name="d6578e291"></a>1.2.1.1.4.&nbsp;Client-side Configuration for Simple User Access Operation - REST Gateway</h5></div></div></div><p>
+        The REST gateway will authenticate with HBase using the supplied
+        credential. No authentication will be performed by the REST gateway
+        itself. All client access via the REST gateway will use the REST
+        gateway's credential and have its privilege.
+    </p><p>The REST gateway user will need access. For example, to give the REST API user, <code class="code">rest_server</code>, administrative access, a command such as this one will suffice:
+    </p><pre class="programlisting">
+    grant 'rest_server', 'RWCA'
+    </pre><p> For more information about ACLs, please see the <a class="link" href="hbase.accesscontrol.configuration.html" title="1.4.&nbsp;Access Control">Access Control</a> section
+    </p><p>
+        It should be possible for clients to authenticate with the HBase
+        cluster through the REST gateway in a pass-through manner via SPEGNO
+        HTTP authentication. This is future work.
+    </p></div></div></div><div class="footnotes"><br><hr width="100" align="left"><div class="footnote"><p><sup>[<a id="ftn.d6578e210" href="#d6578e210" class="para">2</a>] </sup>See
+    also Matteo Bertozzi's article on <a class="link" href="http://www.cloudera.com/blog/2012/09/understanding-user-authentication-and-authorization-in-apache-hbase/" target="_top">Understanding User Authentication and Authorization in Apache HBase</a>.</p></div></div></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'hbase.secure.simpleconfiguration';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="security.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="hbase.tags.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter&nbsp;1.&nbsp;Secure Apache HBase&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="security.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;1.3.&nbsp;Tags</td></tr></table></div></body></html>

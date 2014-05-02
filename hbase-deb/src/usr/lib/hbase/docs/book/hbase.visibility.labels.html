@@ -1,0 +1,52 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>8.6.&nbsp;Visibility Labels</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="book.html" title="The Apache HBase&#153; Reference Guide"><link rel="up" href="security.html" title="Chapter&nbsp;8.&nbsp;Secure Apache HBase"><link rel="prev" href="hbase.secure.bulkload.html" title="8.5.&nbsp;Secure Bulk Load"><link rel="next" href="hbase.encryption.server.html" title="8.7.&nbsp;Transparent Server Side Encryption"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8.6.&nbsp;Visibility Labels</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="hbase.secure.bulkload.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;8.&nbsp;Secure Apache HBase</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="hbase.encryption.server.html">Next</a></td></tr></table><hr></div><div class="section" title="8.6.&nbsp;Visibility Labels"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="hbase.visibility.labels"></a>8.6.&nbsp;Visibility Labels</h2></div></div></div><p>
+	This feature provides cell level security with labeled visibility for the cells. Cells can be associated with a visibility expression. The visibility expression can contain labels joined with logical expressions '&amp;', '|' and '!'. Also using '(', ')' one can specify the precedence order. For example, consider the label set { confidential, secret, topsecret, probationary }, where the first three are sensitivity classifications and the last describes if an employee is probationary or not. If a cell is stored with this visibility expression:
+	( secret | topsecret ) &amp; !probationary
+	</p><p>
+	Then any user associated with the secret or topsecret label will be able to view the cell, as long as the user is not also associated with the probationary label. Furthermore, any user only associated with the confidential label, whether probationary or not, will not see the cell or even know of its existence.
+	</p><p>
+	Visibility expressions like the above can be added when storing or mutating a cell using the API,
+	</p><p><code class="code">Mutation#setCellVisibility(new CellVisibility(String labelExpession));</code></p>
+	Where the labelExpression could be '( secret | topsecret ) &amp; !probationary'
+	
+	<p>
+	We build the user's label set in the RPC context when a request is first received by the HBase RegionServer. How users are associated with labels is pluggable. The default plugin passes through labels specified in Authorizations added to the Get or Scan and checks those against the calling user's authenticated labels list. When client passes some labels for which the user is not authenticated, this default algorithm will drop those. One can pass a subset of user authenticated labels via the Scan/Get authorizations.
+	</p><p><code class="code">Get#setAuthorizations(new Authorizations(String,...));</code></p><p><code class="code">Scan#setAuthorizations(new Authorizations(String,...));</code></p><div class="section" title="8.6.1.&nbsp;Visibility Label Administration"><div class="titlepage"><div><div><h3 class="title"><a name="hbase.visibility.label.administration"></a>8.6.1.&nbsp;Visibility Label Administration</h3></div></div></div><p>
+		There are new client side Java APIs and shell commands for performing visibility labels administrative actions. Only the HBase super user is authorized to perform these operations.
+		</p><div class="section" title="8.6.1.1.&nbsp;Adding Labels"><div class="titlepage"><div><div><h4 class="title"><a name="hbase.visibility.label.administration.add.label"></a>8.6.1.1.&nbsp;Adding Labels</h4></div></div></div><p>A set of labels can be added to the system either by using the Java API</p><p><code class="code">VisibilityClient#addLabels(Configuration conf, final String[] labels)</code></p><p>Or by using the shell command</p><p><code class="code">add_labels [label1, label2]</code></p><p>
+			Valid label can include alphanumeric characters and characters '-', '_', ':', '.' and '/'
+			</p></div><div class="section" title="8.6.1.2.&nbsp;User Label Association"><div class="titlepage"><div><div><h4 class="title"><a name="hbase.visibility.label.administration.add.label"></a>8.6.1.2.&nbsp;User Label Association</h4></div></div></div><p>A set of labels can be associated with a user by using the API</p><p><code class="code">VisibilityClient#setAuths(Configuration conf, final String[] auths, final String user)</code></p><p>Or by using the shell command</p><p><code class="code">set_auths user,[label1, label2].</code></p><p>Labels can be disassociated from a user using API</p><p><code class="code">VisibilityClient#clearAuths(Configuration conf, final String[] auths, final String user)</code></p><p>Or by using shell command</p><p><code class="code">clear_auths user,[label1, label2]</code></p><p>
+			One can use the API <code class="code">VisibilityClient#getAuths(Configuration conf, final String user)</code> or <code class="code">get_auths</code> shell command to get the list of labels associated for a given user. The labels and user auths information will be stored in the system table "labels".
+			</p></div></div><div class="section" title="8.6.2.&nbsp;Server Side Configuration"><div class="titlepage"><div><div><h3 class="title"><a name="hbase.visibility.label.configuration"></a>8.6.2.&nbsp;Server  Side Configuration</h3></div></div></div><p>
+		HBase stores cell level labels as cell tags. HFile version 3 adds the cell tags support. Be sure to use HFile version 3 by setting this property in every server site configuration file:
+		</p><pre class="programlisting">
+		  &lt;property&gt;
+		    &lt;name&gt;hfile.format.version&lt;/name&gt;
+			&lt;value&gt;3&lt;/value&gt;
+		  &lt;/property&gt;
+		</pre><p>
+		You will also need to make sure the VisibilityController coprocessor is active on every table to protect by adding it to the list of system coprocessors in the server site configuration files:
+		</p><pre class="programlisting">
+		  &lt;property&gt;
+		    &lt;name&gt;hbase.coprocessor.master.classes&lt;/name&gt;
+			&lt;value&gt;org.apache.hadoop.hbase.security.visibility.VisibilityController&lt;/value&gt;
+		  &lt;/property&gt;
+		  &lt;property&gt;
+		    &lt;name&gt;hbase.coprocessor.region.classes&lt;/name&gt;
+			&lt;value&gt;org.apache.hadoop.hbase.security.visibility.VisibilityController&lt;/value&gt;
+		  &lt;/property&gt;
+		</pre><p>
+		As said above, finding out labels authenticated for a given get/scan request is a pluggable algorithm. A custom implementation can be plugged in using the property <code class="code">hbase.regionserver.scan.visibility.label.generator.class</code>. The default implementation class is <code class="code">org.apache.hadoop.hbase.security.visibility.DefaultScanLabelGenerator</code>
+		</p></div></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'hbase.visibility.labels';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="hbase.secure.bulkload.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="security.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="hbase.encryption.server.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8.5.&nbsp;Secure Bulk Load&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="book.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;8.7.&nbsp;Transparent Server Side Encryption</td></tr></table></div></body></html>
