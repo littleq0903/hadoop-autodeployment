@@ -46,7 +46,9 @@
 #
 #     HBASE_CONF_DIR - Optionally, the HBase configuration to run against
 #                      when using HBaseStorage. Defaults to ${HBASE_HOME}/conf
-
+PIG_CONF_DIR=/etc/pig
+HBASE_HOME=/usr/lib/hbase
+HBASE_CONF_DIR=/etc/hbase
 cygwin=false
 case "`uname`" in
 CYGWIN*) cygwin=true;;

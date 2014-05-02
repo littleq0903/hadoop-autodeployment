@@ -55,14 +55,14 @@ add_user() {
 }
 
 case "$1" in
-   install|upgrade)
+   install|upgrade)  
       # add group      
       if ! getent group hadoop >/dev/null; then
          groupadd --system hadoop >/dev/null 2>/dev/null || :
       fi
       
       # add user
-      add_user hive system
+      add_user zookeeper pig
     ;;
 
     abort-upgrade)
