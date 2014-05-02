@@ -16,7 +16,7 @@
 #
 # processes --config option from command line
 #
-
+HIVE_CONF_DIR=/etc/hive
 this="$0"
 while [ -h "$this" ]; do
   ls=`ls -ld "$this"`

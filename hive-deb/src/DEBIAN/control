@@ -1,0 +1,9 @@
+Package: hive
+Source: hive
+Version: 0.13.0-0.0.1
+Architecture: all
+Maintainer: Atkins <atkinschang@gmail.com>
+Section: misc
+Priority: extra
+Homepage: http://hive.apache.org/
+Description: hive
