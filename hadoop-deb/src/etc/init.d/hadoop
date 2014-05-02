@@ -13,12 +13,12 @@ fi
 
 
 HADOOP_SCRIPT_HOME=/usr/sbin
-if [ -x /lib/lsb/init-functions ]
+if [ -f /lib/lsb/init-functions ]; then
    . /lib/lsb/init-functions
-   SHOW_MEG=log_daemon_msg
+   SHOW_MSG=log_daemon_msg
    SHOW_RESULT=log_end_msg
-elif
-   SHOW_MEG=echo
+else
+   SHOW_MSG=echo
    SHOW_RESULT=show_result
 fi
 

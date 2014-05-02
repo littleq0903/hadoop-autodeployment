@@ -44,7 +44,7 @@ case "$1" in
 	chown root:hadoop $DATA_HOME
 	chmod g+w $DATA_HOME
 	create_data_dir zookeeper
-
+	chown zookeeper:hadoop $DATA_HOME/zookeeper/myid
 	mkdir -p $LOG_HOME
 	chown root:hadoop $LOG_HOME
 	chmod g+w $LOG_HOME

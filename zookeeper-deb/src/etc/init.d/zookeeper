@@ -13,12 +13,12 @@ fi
 
 
 ZK_SCRIPT_HOME=/usr/lib/zookeeper
-if [ -x /lib/lsb/init-functions ]
+if [ -e /lib/lsb/init-functions ]; then
    . /lib/lsb/init-functions
-   SHOW_MEG=log_daemon_msg
+   SHOW_MSG=log_daemon_msg
    SHOW_RESULT=log_end_msg
-elif
-   SHOW_MEG=echo
+else
+   SHOW_MSG=echo
    SHOW_RESULT=show_result
 fi
 
@@ -39,7 +39,7 @@ start_zk() {
       echo "... directory $ZK_SCRIPT_HOME does not exist!" >&2
       return 1
    fi
-   su zookeeper -c "$Z/zkServer.sh start"
+   su zookeeper -c "$ZK_SCRIPT_HOME/bin/zkServer.sh start"
 }
 
 stop_zk() {
@@ -47,7 +47,7 @@ stop_zk() {
       echo "... directory $ZK_SCRIPT_HOME does not exist!" >&2
       return 1
    fi
-   su zookeeper -c "$Z/zkServer.sh stop"
+   su zookeeper -c "$ZK_SCRIPT_HOME/bin/zkServer.sh stop"
 }
 
 
@@ -60,7 +60,7 @@ case $1 in
       ;;
    stop)
       $SHOW_MSG "Stopping zookeeper daemons"
-      stop_hadoop_master
+      stop_zk
       $SHOW_RESULT 0
       ;;
    restart)

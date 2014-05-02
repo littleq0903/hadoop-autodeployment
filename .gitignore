@@ -1,6 +1,6 @@
 *~
 .DS_Store
 *.deb
-hadoop-deb/src/DEBIAN/conffiles
-hadoop-deb/src/DEBIAN/md5sums
+conffiles
+md5sums
 
