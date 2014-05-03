@@ -62,7 +62,7 @@ case "$1" in
       fi
       
       # add user
-      add_user zookeeper pig
+      add_user pig system
     ;;
 
     abort-upgrade)

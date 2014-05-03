@@ -43,7 +43,7 @@ case "$1" in
 	mkdir -p $LOG_HOME
 	chown root:hadoop $LOG_HOME
 	chmod g+w $LOG_HOME
-	create_log_dir zookeeper
+	create_log_dir pig
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
