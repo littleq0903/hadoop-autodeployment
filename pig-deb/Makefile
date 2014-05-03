@@ -4,9 +4,9 @@ rpm: pig-0.12.1-1.x86_64.rpm
 
 pig-0.12.1-1.x86_64.rpm: pig.deb rpm_pre_install rmp_post_install
 	rm -rf pig-0.12.1
-	alien --to-rpm  -v --generate  hadoop.deb
+	alien --to-rpm  -v --generate  pig.deb
 	sed -i '9iAutoReqProv: no' pig-0.12.1/pig-0.12.1-1.spec
-	cd pig-0.12.1 && rpmbuild --buildroot=/home/atkins/workingspace/hadoop-autodeployment/hadoop-deb/pig-0.12.1/ -bb --target=x86_64 pig-0.12.1-1.spec
+	cd pig-0.12.1 && rpmbuild --buildroot=/home/atkins/workingspace/hadoop-autodeployment/pig-deb/pig-0.12.1/ -bb --target=x86_64 pig-0.12.1-1.spec
 pig.deb:
 	cd src && find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > DEBIAN/md5sums
 	cd src && find etc/pig/ -type f -printf '/%p\n' > DEBIAN/conffiles

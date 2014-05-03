@@ -4,9 +4,9 @@ deb: hbase.deb
 
 hbase-0.98.1-1.x86_64.rpm: hbase.deb rpm_pre_install rmp_post_install
 	rm -rf hbase-0.98.1
-	alien --to-rpm  -v --generate  hadoop.deb
+	alien --to-rpm  -v --generate  hbase.deb
 	sed -i '9iAutoReqProv: no' hbase-0.98.1/hbase-0.98.1-1.spec
-	cd hbase-0.98.1 && rpmbuild --buildroot=/home/atkins/workingspace/hadoop-autodeployment/hadoop-deb/hbase-0.98.1/ -bb --target=x86_64 hbase-0.98.1-1.spec
+	cd hbase-0.98.1 && rpmbuild --buildroot=/home/atkins/workingspace/hadoop-autodeployment/hbase-deb/hbase-0.98.1/ -bb --target=x86_64 hbase-0.98.1-1.spec
 hbase.deb:
 	cd src && find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > DEBIAN/md5sums
 	cd src && find etc/hbase/ -type f -printf '/%p\n' > DEBIAN/conffiles
