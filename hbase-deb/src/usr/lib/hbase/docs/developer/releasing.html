@@ -1,0 +1,192 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>1.4.&nbsp;Releasing Apache HBase</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="developer.html" title="Chapter&nbsp;1.&nbsp;Building and Developing Apache HBase"><link rel="up" href="developer.html" title="Chapter&nbsp;1.&nbsp;Building and Developing Apache HBase"><link rel="prev" href="build.html" title="1.3.&nbsp;Building Apache HBase"><link rel="next" href="documentation.html" title="1.5.&nbsp;Generating the HBase Reference Guide"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1.4.&nbsp;Releasing Apache HBase</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="build.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="documentation.html">Next</a></td></tr></table><hr></div><div class="section" title="1.4.&nbsp;Releasing Apache HBase"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="releasing"></a>1.4.&nbsp;Releasing Apache HBase</h2></div></div></div><p>HBase 0.96.x will run on hadoop 1.x or hadoop 2.x.  HBase 0.98 will run on
+             both also (but HBase 0.98 deprecates use of hadoop 1).   HBase 1.x will NOT
+             run on hadoop 1. In what follows, we make a distinction between HBase 1.x
+             builds and the awkward process involved building HBase 0.96/0.98 for either
+             hadoop 1 or hadoop 2 targets. 
+             </p><div class="section" title="1.4.1.&nbsp;Building against HBase 0.96-0.98"><div class="titlepage"><div><div><h3 class="title"><a name="d0e233"></a>1.4.1.&nbsp;Building against HBase 0.96-0.98</h3></div></div></div><p>Building 0.98 and 0.96, you must choose which hadoop to build against;
+             we cannot make a single HBase binary that can run against both hadoop1 and
+             hadoop2. Since we include the Hadoop we were built
+             against -- so we can do standalone mode -- the set of modules included
+             in the tarball changes dependent on whether the hadoop1 or hadoop2 target
+             is chosen.  You can tell which HBase you have -- whether it is for hadoop1
+             or hadoop2 by looking at the version; the HBase for hadoop1 bundle will
+             include 'hadoop1' in its version.  Ditto for hadoop2.
+         </p><p>Maven, our build system, natively will not let you have a single product
+             built against different dependencies.  It is understandable.  But neither could
+             we convince maven to change the set of included modules and write out
+             the correct poms w/ appropriate dependencies even though we have two
+             build targets; one for hadoop1 and another for hadoop2.  So, there is a prestep
+             required.  This prestep takes as input the current pom.xmls and it generates hadoop1 or
+             hadoop2 versions using a script in <code class="filename">dev-tools</code> called
+             <code class="filename">generate-hadoopX-poms.sh</code>.  You then reference these generated
+             poms when you build. For now, just be aware of the difference between HBase 1.x
+             builds and those of HBase 0.96-0.98. Below we will come back to this difference
+             when we list out build instructions.</p></div><p><a name="mvn.settings.file"></a>Publishing to maven requires you sign the artifacts you want to upload.  To have the
+         build do this for you, you need to make sure you have a properly configured
+         <code class="filename">settings.xml</code> in your local repository under <code class="filename">.m2</code>.
+            Here is my <code class="filename">~/.m2/settings.xml</code>.
+        </p><pre class="programlisting">&lt;settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd"&gt;
+  &lt;servers&gt;
+    &lt;!- To publish a snapshot of some part of Maven --&gt;
+    &lt;server&gt;
+      &lt;id&gt;apache.snapshots.https&lt;/id&gt;
+      &lt;username&gt;YOUR_APACHE_ID
+      &lt;/username&gt;
+      &lt;password&gt;YOUR_APACHE_PASSWORD
+      &lt;/password&gt;
+    &lt;/server&gt;
+    &lt;!-- To publish a website using Maven --&gt;
+    &lt;!-- To stage a release of some part of Maven --&gt;
+    &lt;server&gt;
+      &lt;id&gt;apache.releases.https&lt;/id&gt;
+      &lt;username&gt;YOUR_APACHE_ID
+      &lt;/username&gt;
+      &lt;password&gt;YOUR_APACHE_PASSWORD
+      &lt;/password&gt;
+    &lt;/server&gt;
+  &lt;/servers&gt;
+  &lt;profiles&gt;
+    &lt;profile&gt;
+      &lt;id&gt;apache-release&lt;/id&gt;
+      &lt;properties&gt;
+    &lt;gpg.keyname&gt;YOUR_KEYNAME&lt;/gpg.keyname&gt;
+    &lt;!--Keyname is something like this ... 00A5F21E... do gpg --list-keys to find it--&gt;
+    &lt;gpg.passphrase&gt;YOUR_KEY_PASSWORD
+    &lt;/gpg.passphrase&gt;
+      &lt;/properties&gt;
+    &lt;/profile&gt;
+  &lt;/profiles&gt;
+&lt;/settings&gt;
+        </pre><p>
+        </p><p>You must use maven 3.0.x (Check by running <span class="command"><strong>mvn -version</strong></span>).
+        </p><div class="section" title="1.4.2.&nbsp;Making a Release Candidate"><div class="titlepage"><div><div><h3 class="title"><a name="maven.release"></a>1.4.2.&nbsp;Making a Release Candidate</h3></div></div></div><p>I'll explain by running through the process.  See later in this section for more detail on particular steps.
+These instructions are for building HBase 1.0.x.  For building earlier versions, the process is different.  See this section
+under the respective release documentation folders.
+         </p><p>If you are making a point release (for example to quickly address a critical incompatability or security
+             problem) off of a release branch instead of a development branch the tagging instructions are slightly different.
+             I'll prefix those special steps with <span class="emphasis"><em>Point Release Only</em></span>.
+	 </p><p>I would advise before you go about making a release candidate, do a practise run by deploying a SNAPSHOT.
+             Also, make sure builds have been passing recently for the branch from where you are going to take your
+             release.  You should also have tried recent branch tips out on a cluster under load running for instance
+             our hbase-it integration test suite for a few hours to 'burn in' the near-candidate bits.
+         </p><div class="note" title="Point Release Only" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Point Release Only</h3><p>At this point you should make svn copy of the previous release branch (ex: 0.96.1) with
+             the new point release tag (e.g. 0.96.1.1 tag).  Any commits with changes or mentioned below for the point release
+	     should be appled to the new tag. 
+	 </p><pre class="programlisting">
+$ svn copy http://svn.apache.org/repos/asf/hbase/tags/0.96.1 http://svn.apache.org/repos/asf/hbase/tags/0.96.1.1
+$ svn checkout http://svn.apache.org/repos/asf/hbase/tags/0.96.1.1
+	 </pre></div><p>The <a class="link" href="http://wiki.apache.org/hadoop/HowToRelease" target="_top">Hadoop How To Release</a> wiki
+         page informs much of the below and may have more detail on particular sections so it is worth review.</p><p>Update CHANGES.txt with the changes since the last release.
+            Make sure the URL to the JIRA points to the properly location listing fixes for this release.
+            Adjust the version in all the poms appropriately.  If you are making a release candidate, you must
+            remove the <span class="emphasis"><em>-SNAPSHOT</em></span> from all versions.  If you are running this receipe to
+            publish a SNAPSHOT, you must keep the <span class="emphasis"><em>-SNAPSHOT</em></span> suffix on the hbase version.
+             The <a class="link" href="http://mojo.codehaus.org/versions-maven-plugin/" target="_top">Versions Maven Plugin</a> can be of use here.  To
+             set a version in all the many poms of the hbase multi-module project, do something like this:
+             </p><pre class="programlisting">$ mvn clean org.codehaus.mojo:versions-maven-plugin:1.3.1:set -DnewVersion=0.96.0</pre><p>
+             Checkin the <code class="filename">CHANGES.txt</code> and any version changes.
+        </p><p>
+            Update the documentation under <code class="filename">src/main/docbkx</code>.  This usually involves copying the
+            latest from trunk making version-particular adjustments to suit this release candidate version.
+        </p><p>Now, build the src tarball.  This tarball is hadoop version independent.  It is just the pure src code and documentation without a particular hadoop taint, etc.
+            Add the <code class="varname">-Prelease</code> profile when building; it checks files for licenses and will fail the build if unlicensed files present.
+            </p><pre class="programlisting">$ MAVEN_OPTS="-Xmx2g" mvn clean install -DskipTests assembly:single -Dassembly.file=hbase-assembly/src/main/assembly/src.xml -Prelease</pre><p>
+            Undo the tarball and make sure it looks good.  A good test for the src tarball being 'complete' is to see if
+            you can build new tarballs from this source bundle.
+            If the source tarball is good, save it off to a <span class="emphasis"><em>version directory</em></span>, i.e a directory somewhere where you are collecting
+            all of the tarballs you will publish as part of the release candidate.  For example if we were building a
+            hbase-0.96.0 release candidate, we might call the directory <code class="filename">hbase-0.96.0RC0</code>.  Later
+            we will publish this directory as our release candidate up on people.apache.org/~YOU.
+        </p><p>Now lets build the binary tarball.
+            Add the <code class="varname">-Prelease</code> profile when building; it checks files for licenses and will fail the build if unlicensed files present.
+            Do it in two steps. First install into the local repository and then generate documentation and assemble the tarball
+            (Otherwise build complains that hbase modules are not in maven repo when we try to do it all in the one go especially on fresh repo).
+            It seems that you need the install goal in both steps.
+            </p><pre class="programlisting">$ MAVEN_OPTS="-Xmx3g" mvn clean install -DskipTests -Prelease
+$ MAVEN_OPTS="-Xmx3g" mvn install -DskipTests site assembly:single -Prelease</pre><p>
+Undo the generated tarball and check it out.  Look at doc. and see if it runs, etc.
+If good, copy the tarball to the above mentioned <span class="emphasis"><em>version directory</em></span>.
+</p><div class="note" title="Point Release Only" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Point Release Only</h3><p>The following step that creates a new tag can be skipped since you've already created the point release tag</p></div><p>I'll tag the release at this point since its looking good.  If we find an issue later, we can delete the tag and start over.  Release needs to be tagged when we do next step.</p><p>Now deploy hbase to the apache maven repository.
+This time we use the <code class="varname">apache-release</code> profile instead of just <code class="varname">release</code> profile when doing mvn deploy;
+it will invoke the apache pom referenced by our poms.  It will also sign your artifacts published to mvn as long as your settings.xml in your local <code class="filename">.m2</code>
+repository is configured correctly (your <code class="filename">settings.xml</code> adds your gpg password property to the apache profile).
+</p><pre class="programlisting">$ MAVEN_OPTS="-Xmx3g" mvn deploy -DskipTests -Papache-release</pre><p>
+The last command above copies all artifacts up to a temporary staging apache mvn repo in an 'open' state.
+We'll need to do more work on these maven artifacts to make them generally available.
+</p><p>The script <code class="filename">dev-support/make_rc.sh</code> automates alot of the above listed release steps.
+             It does not do the modification of the CHANGES.txt for the release, the close of the
+             staging repository up in apache maven (human intervention is needed here), the checking of
+             the produced artifacts to ensure they are 'good' -- e.g.  undoing the produced tarballs, eyeballing them to make
+             sure they look right then starting and checking all is running properly --  and then the signing and pushing of
+             the tarballs to people.apache.org but it does the other stuff; it can come in handy.
+            </p><p>Now lets get back to what is up in maven. Our artifacts should be up in maven repository in the staging area 
+in the 'open' state.  While in this 'open' state you can check out what you've published to make sure all is good.
+To do this, login at repository.apache.org
+using your apache id.  Find your artifacts in the staging repository.  Browse the content.  Make sure all artifacts made it up
+and that the poms look generally good.  If it checks out, 'close' the repo.  This will make the artifacts publically available.
+You will receive an email with the URL to give out for the temporary staging repository for others to use trying out this new
+release candidate.  Include it in the email that announces the release candidate. Folks will need to add this repo URL to their
+local poms or to their local settings.xml file to pull the published release candidate artifacts.  If the published artifacts are incomplete
+or borked, just delete the 'open' staged artifacts.
+</p><div class="note" title="hbase-downstreamer" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">hbase-downstreamer</h3><p>
+        See the <a class="link" href="https://github.com/saintstack/hbase-downstreamer" target="_top">hbase-downstreamer</a> test for a simple
+        example of a project that is downstream of hbase an depends on it.
+        Check it out and run its simple test to make sure maven artifacts are properly deployed to the maven repository.
+        Be sure to edit the pom to point at the proper staging repo.  Make sure you are pulling from the repo when tests run and that you are not
+        getting from your local repo (pass -U or delete your local repo content and check maven is pulling from remote out of the staging repo).
+    </p></div><p>
+            See <a class="link" href="http://www.apache.org/dev/publishing-maven-artifacts.html" target="_top">Publishing Maven Artifacts</a> for
+            some pointers on this maven staging process.
+            </p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>We no longer publish using the maven release plugin.  Instead we do mvn deploy.  It seems to give
+                    us a backdoor to maven release publishing.  If no <span class="emphasis"><em>-SNAPSHOT</em></span> on the version
+                    string, then we are 'deployed' to the apache maven repository staging directory from which we
+                    can publish URLs for candidates and later, if they pass, publish as release (if a
+                    <span class="emphasis"><em>-SNAPSHOT</em></span> on the version string, deploy will put the artifacts up into
+                    apache snapshot repos).
+                </p></div><p>
+</p><p>If the hbase version ends in <code class="varname">-SNAPSHOT</code>, the artifacts go elsewhere.  They are put into the apache snapshots repository
+    directly and are immediately available.  Making a SNAPSHOT release, this is what you want to happen.</p><p>
+            At this stage we have two tarballs in our 'version directory' and a set of artifacts up in maven in staging area in the
+            'closed' state publically available in a temporary staging repository whose URL you should have gotten in an email.
+        The above mentioned script, <code class="filename">make_rc.sh</code> does all of the above for you minus the check of the artifacts built,
+        the closing of the staging repository up in maven, and the tagging of the release.  If you run the script, do your checks at this
+        stage verifying the src and bin tarballs and checking what is up in staging using hbase-downstreamer project. Tag before you start
+        the build.  You can always delete it if the build goes haywire.
+    </p><p>
+        If all checks out, next put the <span class="emphasis"><em>version directory</em></span> up on people.apache.org.  You will need to sign and fingerprint them before you
+        push them up. In the <span class="emphasis"><em>version directory</em></span> do this:
+        </p><pre class="programlisting">$ for i in *.tar.gz; do echo $i; gpg --print-mds $i &gt; $i.mds ; done
+$ for i in *.tar.gz; do echo $i; gpg --armor --output $i.asc --detach-sig $i  ; done
+$ cd ..
+# Presuming our 'version directory' is named 0.96.0RC0, now copy it up to people.apache.org.
+$ rsync -av 0.96.0RC0 people.apache.org:public_html
+        </pre><p>
+        </p><p>Make sure the people.apache.org directory is showing and that the
+            mvn repo urls are good.
+            Announce the release candidate on the mailing list and call a vote.
+        </p></div><div class="section" title="1.4.3.&nbsp;Publishing a SNAPSHOT to maven"><div class="titlepage"><div><div><h3 class="title"><a name="maven.snapshot"></a>1.4.3.&nbsp;Publishing a SNAPSHOT to maven</h3></div></div></div><p>Make sure your <code class="filename">settings.xml</code> is set up properly (see above for how).
+              Make sure the hbase version includes <code class="varname">-SNAPSHOT</code> as a suffix.  Here is how I published SNAPSHOTS of
+              a release that had an hbase version of 0.96.0 in its poms.
+          </p><pre class="programlisting">$ MAVEN_OPTS="-Xmx3g" mvn clean install -DskipTests  javadoc:aggregate site assembly:single -Prelease
+ $ MAVEN_OPTS="-Xmx3g" mvn -DskipTests  deploy -Papache-release</pre><p>
+</p><p>The <code class="filename">make_rc.sh</code> script mentioned above in the
+    (see <a class="xref" href="releasing.html#maven.release" title="1.4.2.&nbsp;Making a Release Candidate">Section&nbsp;1.4.2, &#8220;Making a Release Candidate&#8221;</a>) can help you publish <code class="varname">SNAPSHOTS</code>.
+    Make sure your hbase.version has a <code class="varname">-SNAPSHOT</code> suffix and then run
+    the script.  It will put a snapshot up into the apache snapshot repository for you.
+</p></div></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'releasing';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="build.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="documentation.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1.3.&nbsp;Building Apache HBase&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="developer.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;1.5.&nbsp;Generating the HBase Reference Guide</td></tr></table></div></body></html>

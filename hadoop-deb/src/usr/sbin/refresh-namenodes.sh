@@ -23,7 +23,7 @@
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 
-DEFAULT_LIBEXEC_DIR="$bin"/../libexec
+DEFAULT_LIBEXEC_DIR=/usr/lib/hadoop/libexec
 HADOOP_LIBEXEC_DIR=${HADOOP_LIBEXEC_DIR:-$DEFAULT_LIBEXEC_DIR}
 . $HADOOP_LIBEXEC_DIR/hdfs-config.sh
 

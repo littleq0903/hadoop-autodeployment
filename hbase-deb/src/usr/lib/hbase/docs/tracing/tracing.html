@@ -1,0 +1,90 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>Appendix&nbsp;A.&nbsp;Enabling Dapper-like Tracing in HBase</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="tracing.html" title="Appendix&nbsp;A.&nbsp;Enabling Dapper-like Tracing in HBase"><link rel="next" href="tracing.client.modifications.html" title="A.2.&nbsp;Client Modifications"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Appendix&nbsp;A.&nbsp;Enabling Dapper-like Tracing in HBase</th></tr><tr><td width="20%" align="left">&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="tracing.client.modifications.html">Next</a></td></tr></table><hr></div><div class="appendix" title="Appendix&nbsp;A.&nbsp;Enabling Dapper-like Tracing in HBase"><div class="titlepage"><div><div><h2 class="title"><a name="tracing"></a>Appendix&nbsp;A.&nbsp;Enabling Dapper-like Tracing in HBase</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="section"><a href="tracing.html#tracing.spanreceivers">A.1. SpanReceivers</a></span></dt><dt><span class="section"><a href="tracing.client.modifications.html">A.2. Client Modifications</a></span></dt><dt><span class="section"><a href="tracing.client.shell.html">A.3. Tracing from HBase Shell</a></span></dt></dl></div><p>
+    <a class="link" href="https://issues.apache.org/jira/browse/HBASE-6449" target="_top">HBASE-6449</a>
+    added support for tracing requests through HBase, using the open source tracing library,
+    <a class="link" href="http://github.com/cloudera/htrace" target="_top">HTrace</a>.
+    Setting up tracing is quite simple,
+    however it currently requires some very minor changes to your client code
+    (it would not be very difficult to remove this requirement).
+  </p><div class="section" title="A.1.&nbsp;SpanReceivers"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tracing.spanreceivers"></a>A.1.&nbsp;SpanReceivers</h2></div></div></div><p>
+      The tracing system works by collecting information in structs called 'Spans'.
+      It is up to you to choose how you want to receive this information
+      by implementing the <code class="classname">SpanReceiver</code> interface,
+      which defines one method:
+</p><pre class="programlisting">
+  public void receiveSpan(Span span);
+</pre><p>
+      This method serves as a callback whenever a span is completed.
+      HTrace allows you to use as many SpanReceivers as you want
+      so you can easily send trace information to multiple destinations.
+    </p><p>
+      Configure what SpanReceivers you'd like to us
+      by putting a comma separated list of the
+      fully-qualified class name of classes implementing
+      <code class="classname">SpanReceiver</code> in <code class="filename">hbase-site.xml</code>
+      property: <code class="varname">hbase.trace.spanreceiver.classes</code>.
+    </p><p>
+      HTrace includes a <code class="classname">LocalFileSpanReceiver</code>
+      that writes all span information to local files in a JSON-based format.
+      The <code class="classname">LocalFileSpanReceiver</code>
+      looks in <code class="filename">hbase-site.xml</code>
+      for a <code class="varname">hbase.local-file-span-receiver.path</code>
+      property with a value describing the name of the file
+      to which nodes should write their span information.
+</p><pre class="programlisting">
+  &lt;property&gt;
+    &lt;name&gt;hbase.trace.spanreceiver.classes&lt;/name&gt;
+    &lt;value&gt;org.htrace.impl.LocalFileSpanReceiver&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;hbase.local-file-span-receiver.path&lt;/name&gt;
+    &lt;value&gt;/var/log/hbase/htrace.out&lt;/value&gt;
+  &lt;/property&gt;
+</pre><p>
+    </p><p>
+      HTrace also includes a <code class="classname">ZipkinSpanReceiver</code>
+      that converts all span information to
+      <a class="link" href="http://github.com/twitter/zipkin" target="_top">Zipkin</a>
+      span format and send them to Zipkin server.
+      You need to install htrace-zipkin jar and add it to your HBase classpath
+      in order to use this receiver.
+      The <code class="classname">ZipkinSpanReceiver</code>
+      looks in <code class="filename">hbase-site.xml</code>
+      for a <code class="varname">hbase.zipkin.collector-hostname</code>
+      and <code class="varname">hbase.zipkin.collector-port</code>
+      property with a value describing the Zipkin server
+      to which span information are sent.
+</p><pre class="programlisting">
+  &lt;property&gt;
+    &lt;name&gt;hbase.trace.spanreceiver.classes&lt;/name&gt;
+    &lt;value&gt;org.htrace.impl.ZipkinSpanReceiver&lt;/value&gt;
+  &lt;/property&gt; 
+  &lt;property&gt;
+    &lt;name&gt;hbase.zipkin.collector-hostname&lt;/name&gt;
+    &lt;value&gt;localhost&lt;/value&gt;
+  &lt;/property&gt; 
+  &lt;property&gt;
+    &lt;name&gt;hbase.zipkin.collector-port&lt;/name&gt;
+    &lt;value&gt;9410&lt;/value&gt;
+  &lt;/property&gt; 
+</pre><p>
+    </p><p>
+      If you do not want to use the included span receivers,
+      you are encouraged to write your own receiver
+      (take a look at <code class="classname">LocalFileSpanReceiver</code> for an example).
+      If you think others would benefit from your receiver,
+      file a JIRA or send a pull request to
+      <a class="link" href="http://github.com/cloudera/htrace" target="_top">HTrace</a>.
+    </p></div></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'tracing';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left">&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="tracing.client.modifications.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right" valign="top">&nbsp;A.2.&nbsp;Client Modifications</td></tr></table></div></body></html>

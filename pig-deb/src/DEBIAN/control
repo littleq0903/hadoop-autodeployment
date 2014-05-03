@@ -1,0 +1,10 @@
+Package: pig
+Source: pig
+Version: 0.12.1-0.0.1
+Architecture: all
+Maintainer: Atkins <atkinschang@gmail.com>
+Section: misc
+Priority: extra
+Homepage: http://pig.apache.org/
+Description: pig
+

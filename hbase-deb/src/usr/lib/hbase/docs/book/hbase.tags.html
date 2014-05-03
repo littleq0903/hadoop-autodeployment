@@ -1,0 +1,58 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>8.3.&nbsp;Tags</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="book.html" title="The Apache HBase&#153; Reference Guide"><link rel="up" href="security.html" title="Chapter&nbsp;8.&nbsp;Secure Apache HBase"><link rel="prev" href="hbase.secure.simpleconfiguration.html" title="8.2.&nbsp;Simple User Access to Apache HBase"><link rel="next" href="hbase.accesscontrol.configuration.html" title="8.4.&nbsp;Access Control"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8.3.&nbsp;Tags</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="hbase.secure.simpleconfiguration.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;8.&nbsp;Secure Apache HBase</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="hbase.accesscontrol.configuration.html">Next</a></td></tr></table><hr></div><div class="section" title="8.3.&nbsp;Tags"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="hbase.tags"></a>8.3.&nbsp;Tags</h2></div></div></div><p>
+	Every cell can have metadata associated with it.  Adding metadata in the data part of every cell would make things difficult.
+</p><p>
+	The 0.98 version of HBase solves this problem by providing Tags along with the cell format. 
+	Some of the usecases that uses the tags are Visibility labels, Cell level ACLs, etc.
+</p><p>
+	HFile V3 version from 0.98 onwards supports tags and this feature can be turned on using the following configuration
+</p><pre class="programlisting">
+      &lt;property&gt;
+	    &lt;name&gt;hfile.format.version&lt;/name&gt;
+        &lt;value&gt;3&lt;/value&gt;
+      &lt;/property&gt;
+    </pre><p>
+	Every cell can have zero or more tags. Every tag has a type and the actual tag byte array.
+	The types <span class="command"><strong>0-31</strong></span> are reserved for System tags.  For example &#8216;1&#8217; is reserved for ACL and &#8216;2&#8217; is reserved for Visibility tags.
+</p><p>
+	The way rowkeys, column families, qualifiers and values are encoded using different Encoding Algos, similarly the tags can also be encoded.  
+	Tag encoding can be turned on per CF.  Default is always turn ON.
+	To turn on the tag encoding on the HFiles use
+</p><pre class="programlisting">
+    HColumnDescriptor#setCompressTags(boolean compressTags)
+    </pre><p>
+	Note that encoding of tags takes place only if the DataBlockEncoder is enabled for the CF.
+</p><p>
+	As we compress the WAL entries using Dictionary the tags present in the WAL can also be compressed using Dictionary.  
+	Every tag is compressed individually using WAL Dictionary.  To turn ON tag compression in WAL dictionary enable the property
+</p><pre class="programlisting">
+    &lt;property&gt;
+    	&lt;name&gt;hbase.regionserver.wal.tags.enablecompression&lt;/name&gt;
+    	&lt;value&gt;true&lt;/value&gt;
+	&lt;/property&gt;
+    </pre><p>
+	To add tags to every cell during Puts, the following apis are provided
+</p><pre class="programlisting">
+	Put#add(byte[] family, byte [] qualifier, byte [] value, Tag[] tag)
+	Put#add(byte[] family, byte[] qualifier, long ts, byte[] value, Tag[] tag)
+    </pre><p>
+	Some of the feature developed using tags are Cell level ACLs and Visibility labels.  
+	These are some features that use tags framework and allows users to gain better security features on cell level.
+</p><p>
+	For details checkout 
+</p><p>
+    <a class="link" href="hbase.accesscontrol.configuration.html" title="8.4.&nbsp;Access Control">Access Control</a>
+    <a class="link" href="hbase.visibility.labels.html" title="8.6.&nbsp;Visibility Labels">Visibility labels</a>
+</p></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'hbase.tags';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="hbase.secure.simpleconfiguration.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="security.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="hbase.accesscontrol.configuration.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8.2.&nbsp;Simple User Access to Apache HBase&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="book.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;8.4.&nbsp;Access Control</td></tr></table></div></body></html>

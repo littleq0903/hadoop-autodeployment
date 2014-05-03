@@ -36,7 +36,7 @@ fi
 bin=`dirname "${BASH_SOURCE-$0}"`
 bin=`cd "$bin"; pwd`
 
-DEFAULT_LIBEXEC_DIR="$bin"/../libexec
+DEFAULT_LIBEXEC_DIR=/usr/lib/hadoop/libexec
 HADOOP_LIBEXEC_DIR=${HADOOP_LIBEXEC_DIR:-$DEFAULT_LIBEXEC_DIR}
 if [ -e ${HADOOP_LIBEXEC_DIR}/mapred-config.sh ]; then
   . $HADOOP_LIBEXEC_DIR/mapred-config.sh

@@ -74,7 +74,7 @@ parseArgs() {
 calculateClasspath() {
   HADOOP_BASE=`which hadoop`
   HADOOP_BASE=`dirname $HADOOP_BASE`
-  DEFAULT_LIBEXEC_DIR=${HADOOP_BASE}/../libexec
+  DEFAULT_LIBEXEC_DIR=/usr/lib/hadoop/libexec
   HADOOP_LIBEXEC_DIR=${HADOOP_LIBEXEC_DIR:-$DEFAULT_LIBEXEC_DIR}
   . $HADOOP_LIBEXEC_DIR/hadoop-config.sh
   export HADOOP_CLASSPATH="${HADOOP_CLASSPATH}:${TOOL_PATH}:html"

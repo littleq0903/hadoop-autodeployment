@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+#
+
+set -e
+
+usage="%0 (start|stop|restart|status)"
+
+if [ $# -ne 1 ]; then
+   echo $usage
+   exit 1
+fi
+
+
+ZK_SCRIPT_HOME=/usr/lib/zookeeper
+if [ -e /lib/lsb/init-functions ]; then
+   . /lib/lsb/init-functions
+   SHOW_MSG=log_daemon_msg
+   SHOW_RESULT=log_end_msg
+else
+   SHOW_MSG=echo
+   SHOW_RESULT=show_result
+fi
+
+show_result() {
+   if [ $1 -eq '0' ]; then
+      echo '[OK]'
+   fi
+}
+
+create_pid_dir() {
+   mkdir -p /var/run/hadoop/zookeeper
+   chown zookeeper:hadoop /var/run/hadoop/zookeeper
+   chmod 0755 /var/run/hadoop/zookeeper
+}
+
+start_zk() {
+   if [ ! -d "$ZK_SCRIPT_HOME" ] ; then
+      echo "... directory $ZK_SCRIPT_HOME does not exist!" >&2
+      return 1
+   fi
+   su zookeeper -c "$ZK_SCRIPT_HOME/bin/zkServer.sh start"
+}
+
+stop_zk() {
+   if [ ! -d "$ZK_SCRIPT_HOME" ] ; then
+      echo "... directory $ZK_SCRIPT_HOME does not exist!" >&2
+      return 1
+   fi
+   su zookeeper -c "$ZK_SCRIPT_HOME/bin/zkServer.sh stop"
+}
+
+
+case $1 in
+   start)
+      create_pid_dir
+      $SHOW_MSG "Starting zookeeper daemons"
+      start_zk
+      $SHOW_RESULT 0
+      ;;
+   stop)
+      $SHOW_MSG "Stopping zookeeper daemons"
+      stop_zk
+      $SHOW_RESULT 0
+      ;;
+   restart)
+      $0 stop
+      $0 start
+      ;;
+   status)
+      jps
+      ;;
+   *)
+      echo $usage
+      ;;
+esac

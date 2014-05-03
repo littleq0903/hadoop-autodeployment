@@ -1,0 +1,74 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <title>Chapter&nbsp;7.&nbsp;HBase and MapReduce</title><link rel="stylesheet" type="text/css" href="../css/freebsd_docbook.css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1"><link rel="home" href="book.html" title="The Apache HBase&#153; Reference Guide"><link rel="up" href="book.html" title="The Apache HBase&#153; Reference Guide"><link rel="prev" href="schema.ops.html" title="6.12.&nbsp;Operational and Performance Configuration Options"><link rel="next" href="mapreduce.example.html" title="7.2.&nbsp;HBase MapReduce Examples"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;7.&nbsp;HBase and MapReduce</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="schema.ops.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="mapreduce.example.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter&nbsp;7.&nbsp;HBase and MapReduce"><div class="titlepage"><div><div><h2 class="title"><a name="mapreduce"></a>Chapter&nbsp;7.&nbsp;HBase and MapReduce</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="section"><a href="mapreduce.html#splitter">7.1. Map-Task Splitting</a></span></dt><dd><dl><dt><span class="section"><a href="mapreduce.html#splitter.default">7.1.1. The Default HBase MapReduce Splitter</a></span></dt><dt><span class="section"><a href="mapreduce.html#splitter.custom">7.1.2. Custom Splitters</a></span></dt></dl></dd><dt><span class="section"><a href="mapreduce.example.html">7.2. HBase MapReduce Examples</a></span></dt><dd><dl><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.read">7.2.1. HBase MapReduce Read Example</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.readwrite">7.2.2. HBase MapReduce Read/Write Example</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.readwrite.multi">7.2.3. HBase MapReduce Read/Write Example With Multi-Table Output</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.summary">7.2.4. HBase MapReduce Summary to HBase Example</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.summary.file">7.2.5. HBase MapReduce Summary to File Example</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.summary.noreducer">7.2.6. HBase MapReduce Summary to HBase Without Reducer</a></span></dt><dt><span class="section"><a href="mapreduce.example.html#mapreduce.example.summary.rdbms">7.2.7. HBase MapReduce Summary to RDBMS</a></span></dt></dl></dd><dt><span class="section"><a href="mapreduce.htable.access.html">7.3. Accessing Other HBase Tables in a MapReduce Job</a></span></dt><dt><span class="section"><a href="mapreduce.specex.html">7.4. Speculative Execution</a></span></dt></dl></div><p>See <a class="link" href="http://hbase.org/apidocs/org/apache/hadoop/hbase/mapreduce/package-summary.html#package_description" target="_top">
+  HBase and MapReduce</a> up in javadocs.
+  Start there.  Below is some additional help.</p><p>For more information about MapReduce (i.e., the framework in general), see the Hadoop site (TODO: Need good links here --
+      we used to have some but they rotted against apache hadoop).</p><div class="caution" title="Notice to Mapreduce users of HBase 0.96.1 and above" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Notice to Mapreduce users of HBase 0.96.1 and above</h3><p>Some mapreduce jobs that use HBase fail to launch. The symptom is an
+    exception similar to the following:
+    </p><pre class="programlisting">
+Exception in thread "main" java.lang.IllegalAccessError: class
+    com.google.protobuf.ZeroCopyLiteralByteString cannot access its superclass
+    com.google.protobuf.LiteralByteString
+    at java.lang.ClassLoader.defineClass1(Native Method)
+    at java.lang.ClassLoader.defineClass(ClassLoader.java:792)
+    at java.security.SecureClassLoader.defineClass(SecureClassLoader.java:142)
+    at java.net.URLClassLoader.defineClass(URLClassLoader.java:449)
+    at java.net.URLClassLoader.access$100(URLClassLoader.java:71)
+    at java.net.URLClassLoader$1.run(URLClassLoader.java:361)
+    at java.net.URLClassLoader$1.run(URLClassLoader.java:355)
+    at java.security.AccessController.doPrivileged(Native Method)
+    at java.net.URLClassLoader.findClass(URLClassLoader.java:354)
+    at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
+    at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
+    at
+    org.apache.hadoop.hbase.protobuf.ProtobufUtil.toScan(ProtobufUtil.java:818)
+    at
+    org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil.convertScanToString(TableMapReduceUtil.java:433)
+    at
+    org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil.initTableMapperJob(TableMapReduceUtil.java:186)
+    at
+    org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil.initTableMapperJob(TableMapReduceUtil.java:147)
+    at
+    org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil.initTableMapperJob(TableMapReduceUtil.java:270)
+    at
+    org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil.initTableMapperJob(TableMapReduceUtil.java:100)
+...
+</pre><p>
+    This is because of an optimization introduced in <a class="link" href="https://issues.apache.org/jira/browse/HBASE-9867" target="_top">HBASE-9867</a>
+    that inadvertently introduced a classloader dependency.
+    </p><p>This affects both jobs using the <code class="code">-libjars</code> option and
+    "fat jar," those which package their runtime dependencies in a nested
+    <code class="code">lib</code> folder.</p><p>In order to satisfy the new classloader requirements,
+    hbase-protocol.jar must be included in Hadoop's classpath. This can be
+    resolved system-wide by including a reference to the hbase-protocol.jar in
+    hadoop's lib directory, via a symlink or by copying the jar into the new
+    location.</p><p>This can also be achieved on a per-job launch basis by including it
+    in the <code class="code">HADOOP_CLASSPATH</code> environment variable at job submission
+    time. When launching jobs that package their dependencies, all three of the
+    following job launching commands satisfy this requirement:</p><pre class="programlisting">
+$ HADOOP_CLASSPATH=/path/to/hbase-protocol.jar:/path/to/hbase/conf hadoop jar MyJob.jar MyJobMainClass
+$ HADOOP_CLASSPATH=$(hbase mapredcp):/path/to/hbase/conf hadoop jar MyJob.jar MyJobMainClass
+$ HADOOP_CLASSPATH=$(hbase classpath) hadoop jar MyJob.jar MyJobMainClass
+</pre><p>For jars that do not package their dependencies, the following command
+  structure is necessary:</p><pre class="programlisting">
+$ HADOOP_CLASSPATH=$(hbase mapredcp):/etc/hbase/conf hadoop jar MyApp.jar MyJobMainClass -libjars $(hbase mapredcp | tr ':' ',') ...
+</pre><p>See also <a class="link" href="https://issues.apache.org/jira/browse/HBASE-10304" target="_top">HBASE-10304</a>
+  for further discussion of this issue.</p></div><div class="section" title="7.1.&nbsp;Map-Task Splitting"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="splitter"></a>7.1.&nbsp;Map-Task Splitting</h2></div></div></div><div class="section" title="7.1.1.&nbsp;The Default HBase MapReduce Splitter"><div class="titlepage"><div><div><h3 class="title"><a name="splitter.default"></a>7.1.1.&nbsp;The Default HBase MapReduce Splitter</h3></div></div></div><p>When <a class="link" href="http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/mapreduce/TableInputFormat.html" target="_top">TableInputFormat</a>
+    is used to source an HBase table in a MapReduce job,
+    its splitter will make a map task for each region of the table.
+    Thus, if there are 100 regions in the table, there will be
+    100 map-tasks for the job - regardless of how many column families are selected in the Scan.</p></div><div class="section" title="7.1.2.&nbsp;Custom Splitters"><div class="titlepage"><div><div><h3 class="title"><a name="splitter.custom"></a>7.1.2.&nbsp;Custom Splitters</h3></div></div></div><p>For those interested in implementing custom splitters, see the method <code class="code">getSplits</code> in
+    <a class="link" href="http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/mapreduce/TableInputFormatBase.html" target="_top">TableInputFormatBase</a>.
+    That is where the logic for map-task assignment resides.
+    </p></div></div></div><div id="disqus_thread"></div><script type="text/javascript">
+    var disqus_shortname = 'hbase'; // required: replace example with your forum shortname
+    var disqus_url = 'http://hbase.apache.org/book';
+    var disqus_identifier = 'mapreduce';
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="schema.ops.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="mapreduce.example.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6.12.&nbsp;Operational and Performance Configuration Options&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="book.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;7.2.&nbsp;HBase MapReduce Examples</td></tr></table></div></body></html>
