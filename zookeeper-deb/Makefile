@@ -1,0 +1,11 @@
+default_target: deb
+deb: zookeeper.deb
+all: deb
+
+zookeeper.deb:
+	cd src && find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > DEBIAN/md5sums
+	cd src && find etc/zookeeper/ -type f -printf '/%p\n' > DEBIAN/conffiles
+	dpkg-deb --build  src/ zookeeper.deb
+clean:
+	rm zookeeper.deb
+
