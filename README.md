@@ -20,7 +20,7 @@ Format the namenode
 ```shell
 su hdfs -c 'hdfs namenode -format'
 ```
-Start daemond (will be automated in initscript version)
+Start daemond
 ```shell
 /etc/init.d/hadoop start
 ```
